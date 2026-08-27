@@ -41,8 +41,8 @@ AI 销售助理是一个面向 B2B 销售人员的「单页工作台 + 客户档
 
 ## 快速开始
 
-- 方式一（推荐）：👉 [GitHub Pages 在线演示]（部署后填入链接）
-- 方式二：直接双击 `prototype-v10.html`，**零依赖、离线可跑**。
+- 方式一（推荐）：👉 **[GitHub Pages 在线演示](https://yanyang001.github.io/ai-sales-assistant/)** —— 可交互，直接点开试用
+- 方式二：克隆仓库后双击 `index.html`，**零依赖、离线可跑**。
 - 方式三：`git clone` 后浏览器打开。
 
 ## 功能演示（截图区）
@@ -59,11 +59,13 @@ AI 销售助理是一个面向 B2B 销售人员的「单页工作台 + 客户档
 
 ```
 AI销售助理/
-├── prototype-v10.html                      # 可运行原型（单文件，零依赖）
-├── docs/AI销售助理工作台-功能设计文档.md          # 完整设计文档 V2.2
+├── index.html                              # 可运行原型（单文件，零依赖，GitHub Pages 入口）
+├── docs/
+│   ├── AI销售助理工作台-功能设计文档.md      # 完整设计文档 V2.2
+│   └── 面试讲解脚本.md                       # 面试讲解与预案脚本
+├── LICENSE                                 # MIT
 ├── README.md
-└── docs/
-    └── 面试讲解脚本.md
+└── .gitignore
 ```
 
 ## 验收与测试

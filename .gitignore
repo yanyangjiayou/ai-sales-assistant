@@ -1,0 +1,8 @@
+# 第三方框架（非用户成果，禁止入库）
+superpowers/
+
+# 本地元信息与缓存
+.DS_Store
+.workbuddy/
+*.log
+Thumbs.db

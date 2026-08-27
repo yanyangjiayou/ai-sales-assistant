@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI销售助理 - 原型 V10</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1a1a2e; overflow-x: hidden; }
+
+  .app-titlebar { height: 40px; background: linear-gradient(90deg, #1a365d 0%, #2b6cb0 100%); color: #fff; display: flex; align-items: center; padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 101; font-size: 15px; font-weight: 600; }
+  .app-titlebar-icon { margin-right: 8px; font-size: 18px; }
+  .app-titlebar-sub { font-size: 11px; font-weight: 400; opacity: 0.8; margin-left: 10px; }
+
+  .topbar { height: 48px; background: #fff; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: fixed; top: 40px; left: 0; right: 0; z-index: 100; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: #2b6cb0; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; position: relative; }
+  .badge { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; background: #e53e3e; color: #fff; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; }
+
+  .main { display: flex; padding-top: 88px; height: 100vh; }
+  .col { padding: 12px; overflow-y: auto; height: calc(100vh - 88px); transition: width 0.3s; }
+  .col-left { width: 33.33%; min-width: 320px; background: #fff; border-right: 1px solid #e8e8e8; }
+  .col-center { width: 33.33%; min-width: 320px; background: #f0f2f5; }
+  .col-right { width: 33.33%; min-width: 300px; background: #fff; border-left: 1px solid #e8e8e8; position: relative; }
+  .col-right.collapsed { width: 40px; min-width: 40px; padding: 0; overflow: hidden; }
+  .col-right.collapsed .col-inner { display: none; }
+  .col-right.collapsed .collapse-btn { transform: rotate(180deg); }
+  .collapse-btn { position: absolute; left: -20px; top: 50%; transform: translateY(-50%); width: 40px; height: 56px; background: linear-gradient(135deg, #2b6cb0, #4299e1); border: 3px solid #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; font-weight: 700; z-index: 50; color: #fff; box-shadow: 0 4px 14px rgba(43,108,176,0.5); transition: all 0.15s; }
+.collapse-btn:hover { background: linear-gradient(135deg, #2c5282, #2b6cb0); transform: translateY(-50%) scale(1.06); }
+  .collapse-btn:hover { background: #2c5282; transform: scale(1.1); }
+
+  .card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px; display: flex; align-items: center; gap: 5px; }
+  .card-title .count { color: #999; font-size: 12px; font-weight: 400; margin-left: auto; }
+
+  .todo-card { padding: 14px; border-radius: 10px; margin-bottom: 10px; background: #fff; border: 1px solid #e8e8e8; border-left: 4px solid #ddd; cursor: pointer; transition: all 0.15s; }
+  .todo-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .todo-card.urgent { border-left-color: #e53e3e; }
+  .todo-card.warning { border-left-color: #d69e2e; }
+  .todo-card.normal { border-left-color: #4299e1; }
+  .todo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .todo-customer-name { font-size: 14px; font-weight: 600; line-height: 1.4; flex: 1; }
+  .todo-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+  .todo-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .tag-urgent { background: #fed7d7; color: #c53030; }
+  .tag-warning { background: #feebc8; color: #c05621; }
+  .tag-info { background: #bee3f8; color: #2b6cb0; }
+  .todo-info { font-size: 12px; color: #4a5568; line-height: 1.6; background: #f7fafc; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; }
+  .todo-info-label { color: #999; font-size: 11px; margin-bottom: 2px; }
+  .todo-meta { display: flex; justify-content: space-between; font-size: 11px; color: #999; }
+  .todo-add { padding: 12px; border: 2px dashed #e2e8f0; border-radius: 10px; text-align: center; color: #a0aec0; cursor: pointer; font-size: 13px; }
+  .todo-add:hover { border-color: #2b6cb0; color: #2b6cb0; }
+  .search-box { width: 100%; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 4px 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 11px; color: #666; background: #fff; cursor: pointer; }
+  .filter-btn:hover { border-color: #2b6cb0; color: #2b6cb0; }
+  .customer-card { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; background: #fafafa; cursor: pointer; border: 1px solid transparent; }
+  .customer-card:hover { border-color: #2b6cb0; background: #f0f7ff; }
+  .customer-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+  .ct-red { background: #fed7d7; color: #c53030; }
+  .ct-yellow { background: #fefcbf; color: #b7791f; }
+  .ct-green { background: #c6f6d5; color: #276749; }
+
+  .ai-greeting { background: linear-gradient(135deg, #4299e1 0%, #667eea 100%); color: #fff; padding: 18px; border-radius: 10px; margin-bottom: 10px; }
+  .ai-greeting h3 { font-size: 15px; margin-bottom: 8px; }
+  .ai-greeting p { font-size: 13px; opacity: 0.95; line-height: 1.6; }
+  .method-card { background: #fffbeb; border: 1px solid #fbd38d; }
+  .method-title { color: #975a16; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
+  .method-desc { color: #744210; font-size: 13px; line-height: 1.5; }
+  .action-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; font-family: inherit; }
+  .btn-primary { background: #2b6cb0; color: #fff; }
+  .btn-primary:hover { background: #2c5282; }
+  .btn-secondary { background: #e2e8f0; color: #2d3748; }
+  .btn-secondary:hover { background: #cbd5e0; }
+  .btn-ghost { background: transparent; color: #2b6cb0; border: 1px solid #bee3f8; }
+  .btn-lg { padding: 10px 20px; font-size: 13px; border-radius: 8px; }
+  .btn-orange { background: linear-gradient(135deg, #ed8936, #dd6b20); color: #fff; }
+  .btn-orange:hover { filter: brightness(1.05); }
+  .rec-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f7f7f7; }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-reason { font-size: 11px; color: #4a5568; background: #f7fafc; padding: 4px 8px; border-radius: 4px; margin-top: 4px; line-height: 1.5; }
+  .insight-card { background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .insight-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #c6f6d5; }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-num { width: 20px; height: 20px; background: #38a169; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
+  .insight-content { flex: 1; font-size: 12px; line-height: 1.5; }
+  .insight-link { color: #2b6cb0; text-decoration: underline; cursor: pointer; font-size: 11px; margin-top: 4px; display: inline-block; }
+  .insight-link:hover { color: #1a365d; }
+  .kpi-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .kpi-item { text-align: center; }
+  .kpi-value { font-size: 18px; font-weight: 700; }
+  .kpi-label { font-size: 11px; color: #999; margin-top: 2px; }
+  .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #2b6cb0, #4299e1); border-radius: 3px; transition: width 0.5s; }
+  .rank-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; }
+  .rank-num { width: 20px; text-align: center; font-weight: 700; }
+  .rank-num.first { color: #d69e2e; }
+  .rank-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .rank-fill { height: 100%; background: #2b6cb0; border-radius: 3px; }
+  .rank-value { width: 45px; text-align: right; font-size: 11px; color: #666; }
+  .tab-bar { display: flex; gap: 2px; margin-bottom: 10px; }
+  .tab { padding: 4px 10px; font-size: 11px; cursor: pointer; border-radius: 4px; }
+  .tab.active { background: #2b6cb0; color: #fff; }
+  .tab:not(.active) { color: #666; }
+
+  /* ========== 客户档案页面 ========== */
+  .customer-page { padding-top: 88px; min-height: 100vh; background: #f0f2f5; }
+
+  .cp-banner {
+    background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 50%, #667eea 100%);
+    color: #fff; padding: 24px 32px; display: flex; align-items: center; gap: 20px;
+  }
+  .cp-banner-logo { width: 64px; height: 64px; border-radius: 16px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .cp-banner-info h2 { font-size: 20px; margin-bottom: 6px; }
+  .cp-banner-meta { font-size: 12px; opacity: 0.9; display: flex; gap: 16px; flex-wrap: wrap; }
+  .cp-banner-score { margin-left: auto; text-align: center; padding: 12px 24px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 14px; border: 1px solid rgba(255,255,255,0.25); }
+  .cp-banner-score .num { font-size: 32px; font-weight: 700; line-height: 1; }
+  .cp-banner-score .label { font-size: 11px; opacity: 0.85; margin-top: 4px; }
+  .cp-banner-score .trend { font-size: 11px; margin-top: 2px; color: #c6f6d5; }
+  .cp-banner-back { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .cp-banner-back:hover { background: rgba(255,255,255,0.3); }
+
+  .cp-body { display: flex; padding: 16px 20px; gap: 16px; max-width: 1400px; margin: 0 auto; }
+  .cp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .cp-aside { width: 320px; min-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+
+  .cp-sec { background: #fff; border-radius: 14px; padding: 20px; border: 1px solid #e8e8e8; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .cp-sec-head { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .cp-sec-head .badge { padding: 2px 10px; border-radius: 10px; font-size: 10px; font-weight: 500; }
+  .badge-ai { background: linear-gradient(135deg, #4299e1, #667eea); color: #fff; }
+  .badge-warn { background: #fed7d7; color: #c53030; }
+  .badge-ok { background: #c6f6d5; color: #276749; }
+  .cp-sec-head .spacer { flex: 1; }
+
+  .info-row { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; }
+  .info-pair { font-size: 12px; display: flex; gap: 6px; }
+  .info-pair .lbl { color: #a0aec0; }
+  .info-pair .val { color: #1a1a2e; font-weight: 500; }
+
+  .dmu-cards { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .dmu-card { flex-shrink: 0; min-width: 150px; padding: 12px; border-radius: 10px; background: #f7fafc; border: 1px solid #e2e8f0; text-align: center; transition: all 0.15s; }
+  .dmu-card:hover { border-color: #2b6cb0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+  .dmu-card-avatar { width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+  .dmu-card-name { font-size: 13px; font-weight: 600; }
+  .dmu-card-role { font-size: 11px; color: #718096; margin-top: 2px; }
+  .dmu-card-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; margin-top: 6px; }
+
+  .cp-sec.highlight { background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%); border: 2px solid #4299e1; box-shadow: 0 4px 20px rgba(66,153,225,0.12); }
+  .need-motivation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .nm-col-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid; }
+  .nm-col-title.needs { color: #4a5568; border-color: #cbd5e0; }
+  .nm-col-title.power { color: #276749; border-color: #9ae6b4; }
+  .nm-item { padding: 6px 0; font-size: 12px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+  .nm-icon { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; margin-top: 3px; }
+  .nm-icon.done { background: #c6f6d5; color: #276749; }
+  .nm-icon.pending { background: #fefcbf; color: #b7791f; }
+  .nm-icon.bolt { background: #fed7d7; color: #c53030; }
+
+  .split-row { display: flex; gap: 12px; }
+  .split-col-left { width: 38%; }
+  .split-col-right { width: 62%; }
+  .split-row-half { display: flex; gap: 12px; }
+  .split-col-half { width: 50%; }
+
+  .resistance-box { padding: 12px 14px; background: linear-gradient(135deg, #fffaf0, #fff5eb); border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #e53e3e; }
+  .resistance-box-title { font-size: 13px; font-weight: 700; color: #c53030; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .resistance-box-tag { font-size: 10px; color: #c05621; background: #feebc8; padding: 2px 8px; border-radius: 10px; }
+  .resistance-box-desc { font-size: 12px; color: #4a5568; line-height: 1.6; }
+  .resistance-box-meta { font-size: 11px; color: #999; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #feebc8; }
+
+  .ai-thinking { background: linear-gradient(135deg, #f7fafc, #ebf8ff); border-radius: 10px; padding: 14px; font-size: 12px; color: #2d3748; line-height: 1.7; margin-bottom: 14px; border-left: 4px solid #4299e1; }
+  .ai-thinking-label { color: #2b6cb0; font-weight: 700; margin-bottom: 6px; font-size: 13px; }
+  .ai-strategy-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f7f7f7; }
+  .ai-strategy-item:last-child { border-bottom: none; }
+  .ai-strategy-num { width: 22px; height: 22px; background: linear-gradient(135deg, #2b6cb0, #4299e1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .ai-strategy-text { font-size: 12px; line-height: 1.6; color: #1a1a2e; }
+  .ai-strategy-text strong { color: #2b6cb0; }
+
+  .drill-entry { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 14px 16px; background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%); border-radius: 10px; border: 2px solid #f6ad55; box-shadow: 0 2px 8px rgba(246,173,85,0.15); }
+  .drill-entry-text { flex: 1; }
+  .drill-entry-title { font-size: 14px; font-weight: 700; color: #c05621; margin-bottom: 4px; }
+  .drill-entry-desc { font-size: 12px; color: #4a5568; line-height: 1.5; margin-bottom: 6px; }
+  .drill-entry-meta { font-size: 11px; color: #718096; }
+  .drill-entry-btn { white-space: nowrap; padding: 10px 20px; font-size: 13px; font-weight: 600; }
+
+  .todo-mini { display: flex; gap: 8px; padding: 8px 10px; background: #f7fafc; border-radius: 6px; margin-bottom: 6px; }
+  .todo-mini-box { width: 16px; height: 16px; border: 2px solid #cbd5e0; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+  .todo-mini-text { font-size: 12px; }
+  .todo-mini-pri { font-size: 10px; color: #999; margin-top: 2px; }
+  .material-mini { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f7fafc; border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
+  .material-mini:hover { background: #ebf8ff; }
+  .material-mini-icon { font-size: 20px; }
+  .material-mini-info { flex: 1; }
+  .material-mini-name { font-size: 12px; font-weight: 500; }
+  .material-mini-meta { font-size: 10px; color: #999; }
+
+  .fu-record { display: flex; gap: 10px; margin-bottom: 12px; padding: 12px; background: #f7fafc; border-radius: 10px; }
+  .fu-avatar { width: 34px; height: 34px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .fu-content { flex: 1; }
+  .fu-meta { display: flex; justify-content: space-between; font-size: 11px; color: #999; margin-bottom: 4px; }
+  .fu-text { font-size: 12px; line-height: 1.6; }
+  .fu-ai-tag { display: inline-block; padding: 2px 8px; background: #ebf8ff; color: #2b6cb0; border-radius: 4px; font-size: 10px; margin-top: 4px; }
+
+  /* ========== 阶段化时间轴（V1.2） ========== */
+  .tl-tab-bar { display: flex; gap: 4px; margin-bottom: 14px; }
+  .tl-tab { padding: 5px 14px; font-size: 12px; cursor: pointer; border-radius: 16px; background: #f0f2f5; color: #666; transition: all 0.15s; }
+  .tl-tab.active { background: #2b6cb0; color: #fff; }
+  .tl-stages { position: relative; }
+  .tl-stage { position: relative; padding-left: 34px; margin-bottom: 18px; }
+  .tl-stage::before { content: ''; position: absolute; left: 13px; top: 26px; bottom: -18px; width: 2px; background: linear-gradient(180deg, #2b6cb0, #bee3f8); }
+  .tl-stage:last-child::before { display: none; }
+  .tl-stage-icon { position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #2b6cb0, #4299e1); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 0 0 4px rgba(66,153,225,0.18); }
+  .tl-stage-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .tl-stage-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .tl-stage-date { font-size: 11px; color: #999; }
+  .tl-event { background: #f7fafc; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid #cbd5e0; }
+  .tl-event.followup { border-left-color: #38a169; }
+  .tl-event.system { border-left-color: #4299e1; }
+  .tl-event-title { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .tl-event-meta { font-size: 11px; color: #999; margin: 3px 0; }
+  .tl-event-desc { font-size: 12px; color: #4a5568; line-height: 1.5; }
+  .tl-event-ai { display: inline-block; margin-top: 5px; padding: 2px 8px; background: #ebf8ff; color: #2b6cb0; border-radius: 4px; font-size: 10px; }
+  .tl-empty { font-size: 12px; color: #999; text-align: center; padding: 20px; }
+
+  /* 跟进浮窗 */
+  .chat-float-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 240; backdrop-filter: blur(2px); }
+  .chat-float { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 760px; height: 72vh; max-height: 780px; min-height: 520px; background: #fff; border-radius: 16px; box-shadow: 0 16px 64px rgba(0,0,0,0.25); display: flex; flex-direction: column; z-index: 250; overflow: hidden; }
+  .chat-header { background: linear-gradient(135deg, #2b6cb0, #4299e1); color: #fff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; }
+  .chat-body { flex: 1; overflow-y: auto; padding: 16px; background: #f7fafc; }
+  .chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+  .chat-msg.ai { background: #fff; border: 1px solid #e2e8f0; }
+  .chat-msg.me { background: #2b6cb0; color: #fff; margin-left: auto; }
+  .chat-input { padding: 12px; border-top: 1px solid #e8e8e8; background: #fff; }
+  .chat-input-box { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; font-size: 13px; min-height: 40px; background: #f7fafc; margin-bottom: 8px; outline: none; }
+  .chat-input-box:focus { border-color: #2b6cb0; background: #fff; }
+  .chat-actions { display: flex; justify-content: space-between; align-items: center; }
+  .chat-action-left { display: flex; gap: 8px; }
+  .chat-icon-btn { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; background: #f0f0f0; }
+
+  /* 弹窗 */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 300; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #fff; border-radius: 16px; width: 560px; max-width: 92vw; max-height: 88vh; overflow-y: auto; padding: 24px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .close-btn { font-size: 20px; color: #999; cursor: pointer; }
+  .close-btn:hover { color: #1a1a2e; }
+  .parse-result { padding: 14px; background: #f7fafc; border-radius: 8px; margin-bottom: 10px; display: flex; gap: 10px; border: 1px solid #e2e8f0; }
+  .parse-checkbox { margin-top: 2px; width: 16px; height: 16px; }
+  .parse-detail { font-size: 12px; margin-top: 6px; color: #4a5568; line-height: 1.6; }
+  .parse-source { font-size: 11px; color: #999; margin-top: 4px; }
+  .parse-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-top: 4px; }
+  .parse-tag-high { background: #fed7d7; color: #c53030; }
+  .parse-tag-mid { background: #feebc8; color: #c05621; }
+  .parse-tag-low { background: #c6f6d5; color: #276749; }
+  .select-all-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #ebf8ff; border-radius: 6px; margin-bottom: 10px; font-size: 12px; color: #2b6cb0; }
+
+  /* 知识库 */
+  .kb-page { display: flex; height: calc(100vh - 88px); padding-top: 88px; }
+  .kb-sidebar { width: 240px; background: #fff; border-right: 1px solid #e8e8e8; padding: 20px; overflow-y: auto; }
+  .kb-tree-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #4a5568; }
+  .kb-tree-item:hover { background: #f0f7ff; }
+  .kb-tree-item.active { background: #2b6cb0; color: #fff; }
+  .kb-tree-children { padding-left: 16px; }
+  .kb-content { flex: 1; padding: 28px; overflow-y: auto; background: #fff; }
+  .kb-content h2 { font-size: 22px; margin-bottom: 16px; }
+  .kb-content p { line-height: 1.8; color: #4a5568; margin-bottom: 10px; font-size: 13px; }
+  .kb-case-box { background: #f7fafc; border-radius: 10px; padding: 18px; margin: 14px 0; border-left: 4px solid #2b6cb0; }
+  .kb-case-title { font-weight: 600; margin-bottom: 12px; font-size: 15px; }
+  .kb-case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+  .kb-case-item { display: flex; gap: 8px; padding: 6px 8px; background: #fff; border-radius: 6px; border: 1px solid #e8e8e8; }
+  .kb-case-label { color: #999; flex-shrink: 0; width: 80px; font-weight: 500; }
+  .kb-case-value { color: #1a1a2e; flex: 1; }
+  .kb-case-section { margin-top: 14px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #e8e8e0; }
+  .kb-case-section-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #2b6cb0; }
+
+  /* 演练弹窗（沟通预演） */
+  .drill-modal { width: 600px; }
+  .scenario-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .scenario-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+  .scenario-card:hover { border-color: #f6ad55; box-shadow: 0 4px 14px rgba(246,173,85,0.18); transform: translateY(-2px); }
+  .scenario-card-name { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .scenario-card-desc { font-size: 12px; color: #4a5568; line-height: 1.5; }
+  .drill-chat { max-height: 320px; overflow-y: auto; padding: 12px; background: #f7fafc; border-radius: 10px; margin: 12px 0; }
+  .drill-chat .chat-msg { font-size: 13px; }
+  .drill-options { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .drill-option { text-align: left; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 12px; color: #2d3748; }
+  .drill-option:hover { border-color: #2b6cb0; background: #f0f7ff; }
+  .score-box { background: linear-gradient(135deg, #f0fff4, #e6fffa); border-radius: 12px; padding: 20px; text-align: center; }
+  .score-total { font-size: 42px; font-weight: 800; color: #38a169; }
+  .score-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; text-align: left; }
+  .score-dim { background: #fff; border-radius: 8px; padding: 10px 12px; border: 1px solid #e8e8e8; font-size: 12px; }
+  .score-dim .dim-name { font-weight: 700; margin-bottom: 4px; }
+  .score-dim .dim-ok { color: #38a169; }
+  .score-dim .dim-warn { color: #d69e2e; }
+  .score-advice { font-size: 12px; color: #4a5568; line-height: 1.6; text-align: left; background: #fff; border-radius: 8px; padding: 12px; border: 1px solid #e8e8e8; }
+
+  /* 决策链路（流程链替代 5 卡片） */
+  .decision-chain { display: flex; align-items: stretch; gap: 0; padding: 8px 0; overflow-x: auto; }
+  .chain-node { flex: 1; min-width: 110px; padding: 10px 12px; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; text-align: center; position: relative; transition: all 0.15s; }
+  .chain-node:hover { border-color: #4299e1; box-shadow: 0 4px 12px rgba(66,153,225,0.1); }
+  .chain-node.core { border-color: #38a169; background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%); box-shadow: 0 4px 14px rgba(56,161,105,0.18); }
+  .chain-node.core::before { content: '⭐ 核心决策'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #38a169; color: #fff; font-size: 9px; padding: 2px 8px; border-radius: 8px; white-space: nowrap; font-weight: 600; }
+  .chain-arrow { display: flex; align-items: center; justify-content: center; width: 22px; flex-shrink: 0; color: #4299e1; font-size: 18px; font-weight: 700; }
+
+  /* 客户阶段重点标签 */
+  .stage-tag { display: inline-block; background: linear-gradient(135deg, #f6ad55, #ed8936); color: #fff; padding: 4px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 8px rgba(237,137,54,0.35); letter-spacing: 0.5px; }
+
+  /* 业绩档位（清晰化图标） */
+  .tier-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: linear-gradient(135deg, #fbd38d, #f6ad55); color: #fff; border-radius: 14px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(246,173,85,0.3); }
+  .tier-icon { display: inline-block; width: 18px; height: 18px; background: #fff; color: #f6ad55; border-radius: 50%; text-align: center; line-height: 18px; font-weight: 800; font-size: 11px; }
+
+  /* 顶部 AI 助理按钮（强化徽章） */
+  .topbar-ai-btn { background: linear-gradient(135deg, #4299e1, #667eea); color: #fff; border: none; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(66,153,225,0.4); position: relative; font-weight: 600; }
+  .topbar-ai-btn:hover { filter: brightness(1.08); }
+  .topbar-ai-btn .dot { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: #e53e3e; border-radius: 50%; box-shadow: 0 0 0 2px #fff; animation: aiPulse 1.5s infinite; }
+  @keyframes aiPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.3); } }
+
+  /* AI 对话 FAB（强化图标） */
+  .ai-fab { position: fixed; bottom: 84px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4299e1, #667eea); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 28px; box-shadow: 0 8px 24px rgba(66,153,225,0.45); z-index: 150; border: 3px solid rgba(255,255,255,0.5); animation: aiFloat 3s ease-in-out infinite; }
+  .ai-fab:hover { transform: scale(1.08); }
+
+  /* AI 综合双 CTA */
+  .ai-cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .ai-cta { display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 12px; cursor: pointer; border: 1.5px solid transparent; background: #fff; transition: all 0.18s; text-align: left; gap: 4px; }
+  .ai-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+  .ai-cta .cta-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .ai-cta .cta-sub { font-size: 11px; color: #666; line-height: 1.4; }
+  .ai-cta-primary { background: linear-gradient(135deg,#4299e1,#667eea); color: #fff; border-color: #667eea; }
+  .ai-cta-primary .cta-sub { color: rgba(255,255,255,0.85); }
+  .ai-cta-orange { background: linear-gradient(135deg,#f6ad55,#ed8936); color: #fff; border-color: #ed8936; }
+  .ai-cta-orange .cta-sub { color: rgba(255,255,255,0.9); }
+
+  /* v10 客户基础信息 编辑模式 */
+  .basic-edit-btn { background: transparent; border: 1px solid #cbd5e0; color: #4a5568; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+  .basic-edit-btn:hover { border-color: #4299e1; color: #2b6cb0; background: #f0f7ff; }
+  .basic-edit-input { padding: 4px 8px; border: 1.5px solid #4299e1; border-radius: 6px; font-size: 12px; font-family: inherit; background: #fff; outline: none; width: 100%; box-sizing: border-box; }
+  .basic-summary { margin-top: 10px; padding: 10px 12px; background: linear-gradient(135deg, #f7fafc, #ebf8ff); border-left: 3px solid #4299e1; border-radius: 8px; font-size: 12px; color: #2d3748; line-height: 1.7; }
+  .basic-summary b { color: #2b6cb0; }
+
+  /* v10 三栏：需求 / 动力 / 阻力 */
+  .nm3-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .nm3-col { padding: 14px; border-radius: 12px; background: #fff; border: 1.5px solid #e2e8f0; transition: all 0.15s; }
+  .nm3-col:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+  .nm3-col.needs { border-top: 3px solid #38a169; }
+  .nm3-col.power { border-top: 3px solid #ed8936; }
+  .nm3-col.resist { border-top: 3px solid #e53e3e; }
+  .nm3-col-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .nm3-col.needs .nm3-col-title { color: #276749; }
+  .nm3-col.power .nm3-col-title { color: #c05621; }
+  .nm3-col.resist .nm3-col-title { color: #c53030; }
+  .nm3-col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .nm3-col-head .col-edit { font-size: 11px; color: #4299e1; cursor: pointer; padding: 2px 8px; border-radius: 6px; }
+  .nm3-col-head .col-edit:hover { background: #ebf8ff; }
+  .nm3-col-head .col-edit.editing { background: #fff5f5; color: #c53030; }
+  .nm3-item { font-size: 12px; padding: 6px 0; line-height: 1.6; display: flex; gap: 8px; align-items: flex-start; border-bottom: 1px dashed #edf2f7; }
+  .nm3-item:last-child { border-bottom: none; }
+  .nm3-item .nm-icon { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .nm3-item .nm-icon.done { background: #c6f6d5; color: #276749; }
+  .nm3-item .nm-icon.pending { background: #fefcbf; color: #b7791f; }
+  .nm3-item .nm-icon.bolt { background: #feebc8; color: #c05621; }
+  .nm3-item .nm-icon.high { background: #fed7d7; color: #c53030; }
+  .nm3-item .nm-icon.mid { background: #feebc8; color: #c05621; }
+  .nm3-item .nm-icon.low { background: #fefcbf; color: #b7791f; }
+  .nm3-add { margin-top: 6px; font-size: 11px; color: #4299e1; cursor: pointer; padding: 4px 0; }
+  .nm3-add:hover { color: #2b6cb0; }
+  .nm3-item-edit { width: 100%; padding: 4px 6px; border: 1px dashed #4299e1; border-radius: 4px; font-size: 12px; font-family: inherit; background: #fff; }
+
+  /* v10 AI 沟通策略 - 立体化 */
+  .ai-s-hero { padding: 14px 16px; background: linear-gradient(135deg, #1a202c, #2d3748); color: #fff; border-radius: 12px 12px 0 0; position: relative; }
+  .ai-s-hero-avatar { position: absolute; top: 14px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #4299e1); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 12px rgba(66,153,225,0.5); }
+  .ai-s-hero-text { font-size: 13px; line-height: 1.7; padding-right: 50px; }
+  .ai-s-hero-text b { color: #fbd38d; }
+  .ai-s-hero-tip { display: inline-block; margin-top: 8px; padding: 4px 10px; background: rgba(246,173,85,0.18); border: 1px solid rgba(246,173,85,0.4); color: #fbd38d; border-radius: 12px; font-size: 11px; }
+
+  .ai-cot { border: 1px solid #e2e8f0; border-top: none; background: #fff; }
+  .ai-cot-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; background: #f7fafc; }
+  .ai-cot-head:hover { background: #edf2f7; }
+  .ai-cot-head .label { font-size: 13px; font-weight: 700; color: #2d3748; display: flex; align-items: center; gap: 6px; }
+  .ai-cot-head .arrow { color: #666; font-size: 14px; transition: transform 0.2s; }
+  .ai-cot.open .ai-cot-head .arrow { transform: rotate(180deg); }
+  .ai-cot-body { display: none; padding: 14px 16px; background: linear-gradient(180deg, #fafbfc, #fff); border-top: 1px solid #e2e8f0; }
+  .ai-cot.open .ai-cot-body { display: block; }
+  .cot-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+  .cot-step:last-child { border-bottom: none; }
+  .cot-step .step-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #4299e1, #667eea); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .cot-step .step-content { flex: 1; font-size: 12px; line-height: 1.7; color: #2d3748; }
+  .cot-step .step-content b { color: #2b6cb0; display: block; margin-bottom: 4px; }
+  .cot-step .step-content ul { margin: 4px 0 0 0; padding-left: 18px; }
+  .cot-step .step-content li { margin-bottom: 3px; }
+  .cot-step .step-tag { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-right: 4px; }
+  .cot-tag-hit { background: #c6f6d5; color: #276749; }
+  .cot-tag-miss { background: #fed7d7; color: #c53030; }
+
+  /* 策略时间线 */
+  .ai-timeline-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding: 0; margin: 0; background: linear-gradient(90deg, #ebf8ff 0%, #fefcbf 100%); }
+  .ai-tl-step { padding: 8px 4px; text-align: center; font-size: 10px; font-weight: 700; color: #2b6cb0; border-right: 1px dashed #bee3f8; position: relative; }
+  .ai-tl-step:last-child { border-right: none; }
+  .ai-tl-step .tl-stage { color: #1a202c; font-size: 11px; }
+
+  /* 策略卡片（新） */
+  .strat-list { padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .strat-card { background: #fafbfc; border-radius: 10px; padding: 12px 14px; border-left: 4px solid #cbd5e0; transition: all 0.15s; }
+  .strat-card.lv-must { border-left-color: #38a169; background: linear-gradient(135deg, #f0fff4, #fafbfc); }
+  .strat-card.lv-recommend { border-left-color: #4299e1; background: linear-gradient(135deg, #ebf8ff, #fafbfc); }
+  .strat-card.lv-optional { border-left-color: #d69e2e; background: linear-gradient(135deg, #fffff0, #fafbfc); }
+  .strat-card.lv-careful { border-left-color: #e53e3e; background: linear-gradient(135deg, #fff5f5, #fafbfc); }
+  .strat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .strat-num { width: 26px; height: 26px; border-radius: 50%; background: #1a202c; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .strat-card.lv-must .strat-num { background: #38a169; }
+  .strat-card.lv-recommend .strat-num { background: #4299e1; }
+  .strat-card.lv-optional .strat-num { background: #d69e2e; }
+  .strat-card.lv-careful .strat-num { background: #e53e3e; }
+  .strat-title { flex: 1; font-size: 13px; font-weight: 700; color: #1a202c; }
+  .strat-title small { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 10px; font-size: 10px; vertical-align: middle; }
+  .strat-card.lv-must small { background: #c6f6d5; color: #276749; }
+  .strat-card.lv-recommend small { background: #bee3f8; color: #2b6cb0; }
+  .strat-card.lv-optional small { background: #fefcbf; color: #b7791f; }
+  .strat-card.lv-careful small { background: #fed7d7; color: #c53030; }
+  .strat-conf { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .strat-conf-bar { width: 50px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .strat-conf-fill { height: 100%; background: linear-gradient(90deg, #38a169, #f6ad55, #e53e3e); }
+  .strat-body { font-size: 12px; line-height: 1.7; color: #2d3748; padding: 8px 0 4px 36px; }
+  .strat-body b { color: #2b6cb0; }
+  .strat-meta { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 6px 0 6px 36px; font-size: 11px; color: #4a5568; }
+  .strat-meta-row { display: flex; gap: 6px; align-items: flex-start; }
+  .strat-meta-row .mr-label { flex-shrink: 0; width: 56px; color: #718096; font-weight: 600; }
+  .strat-meta-row .mr-val { flex: 1; line-height: 1.5; }
+  .strat-actions { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 0 0 36px; }
+  .strat-act { background: #fff; border: 1px solid #cbd5e0; color: #4a5568; padding: 4px 10px; border-radius: 14px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .strat-act:hover { border-color: #4299e1; color: #2b6cb0; background: #ebf8ff; }
+  .strat-act.primary { background: linear-gradient(135deg, #ed8936, #f6ad55); color: #fff; border-color: #ed8936; }
+  .strat-act.primary:hover { filter: brightness(1.08); color: #fff; }
+
+  /* V2.2·4.2.5 策略卡参考话术就地展开 */
+  .tactic-out { margin: 2px 0 4px 36px; padding: 10px 12px; background: #f7fafc; border: 1px dashed #cbd5e0; border-radius: 10px; }
+  .to-pain { font-size: 11px; color: #c05621; font-weight: 700; margin-bottom: 4px; }
+  .to-quote { font-size: 11px; color: #718096; line-height: 1.5; margin-bottom: 8px; padding-left: 4px; border-left: 3px solid #e2e8f0; }
+  .to-script { font-size: 13px; color: #2d3748; line-height: 1.7; background: #fff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; }
+  .to-edit { width: 100%; min-height: 64px; font-size: 13px; line-height: 1.6; color: #2d3748; padding: 10px 12px; border-radius: 8px; border: 1px solid #4299e1; resize: vertical; font-family: inherit; }
+  .to-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .to-btn { background: #fff; border: 1px solid #cbd5e0; color: #4a5568; padding: 4px 11px; border-radius: 14px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .to-btn:hover { border-color: #4299e1; color: #2b6cb0; background: #ebf8ff; }
+  .to-btn.primary { background: linear-gradient(135deg, #38a169, #48bb78); color: #fff; border-color: #38a169; }
+
+  /* V2.2·4.2.6 模块级统一预演卡 */
+  .unified-drill-card { margin: 12px 16px; padding: 16px 18px; border-radius: 14px; background: linear-gradient(135deg, #ff9a3c, #ff7a45); color: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(255,122,69,0.32); transition: transform 0.15s, box-shadow 0.15s; }
+  .unified-drill-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,122,69,0.42); }
+  .ud-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .ud-desc { font-size: 12px; line-height: 1.7; opacity: 0.95; }
+  .ud-meta { font-size: 11px; opacity: 0.9; margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .ud-start { margin-top: 12px; display: inline-block; background: #fff; color: #d9540d; font-weight: 800; font-size: 13px; padding: 8px 20px; border-radius: 20px; }
+
+  /* 综合预演 - 痛点 × 轮次 覆盖矩阵 */
+  .drill-matrix { margin: 12px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 11px; }
+  .dm-row { display: grid; grid-template-columns: 1.4fr repeat(6, 1fr); }
+  .dm-row.dm-head { background: #edf2f7; font-weight: 700; color: #4a5568; }
+  .dm-cell { padding: 6px 8px; text-align: center; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+  .dm-cell:last-child { border-right: none; }
+  .dm-cell.hit { background: #c6f6d5; color: #22543d; font-weight: 700; }
+  .dm-cell.miss { color: #a0aec0; }
+  .dm-cell.dm-pain { text-align: left; font-weight: 600; color: #2d3748; }
+
+  /* AI 策略 - 决策矩阵 */
+  .ai-decision-matrix { padding: 14px 16px; background: linear-gradient(135deg, #f0f7ff, #fffaf0); border-top: 1px solid #e2e8f0; }
+  .dm-title { font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .dm-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px; align-items: center; font-size: 11px; }
+  .dm-grid > div { padding: 6px 8px; }
+  .dm-grid .h { font-weight: 700; color: #4a5568; border-bottom: 1px solid #e2e8f0; }
+  .dm-grid .d-combo { font-weight: 700; color: #2b6cb0; }
+  .dm-grid .d-score { color: #276749; font-weight: 700; }
+  .dm-grid .d-date { color: #c05621; font-weight: 700; }
+  .dm-final { margin-top: 10px; padding: 10px 12px; background: linear-gradient(135deg, #fffaf0, #ffeaa7); border-left: 4px solid #f6ad55; border-radius: 8px; font-size: 12px; line-height: 1.6; color: #744210; }
+
+  .followup-edit-row { display: inline-flex; gap: 6px; margin-left: 8px; align-items: center; font-size: 11px; color: #4299e1; cursor: pointer; }
+  .followup-edit-row span { padding: 2px 8px; border: 1px solid #bee3f8; border-radius: 12px; background: #fff; }
+  .followup-edit-row span:hover { background: #ebf8ff; }
+  .followup-edit-row .del { color: #c53030; border-color: #fed7d7; }
+  .followup-edit-row .del:hover { background: #fff5f5; }
+  @keyframes aiFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+  /* 跟进录入 - 侧边面板 */
+  .followup-panel { position: fixed; top: 88px; right: 0; bottom: 0; width: 480px; max-width: 92vw; background: #fff; box-shadow: -8px 0 32px rgba(0,0,0,0.15); z-index: 200; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; }
+  .followup-panel.show { transform: translateX(0); }
+  .fp-header { padding: 16px 22px; background: linear-gradient(135deg, #2b6cb0, #4299e1); color: #fff; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; }
+  .fp-body { flex: 1; overflow-y: auto; padding: 20px 24px; background: #f7fafc; display: flex; flex-direction: column; gap: 16px; }
+  .fp-field-label { font-size: 13px; color: #2d3748; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .fp-hint { background: linear-gradient(135deg,#f0f7ff,#e6f0ff); padding: 12px 14px; border-radius: 10px; font-size: 12px; color: #2b6cb0; border-left: 3px solid #2b6cb0; line-height: 1.6; }
+  .fp-input { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 14px; min-height: 180px; background: #fff; font-size: 14px; line-height: 1.7; outline: none; font-family: inherit; resize: vertical; }
+  .fp-input:focus { border-color: #2b6cb0; }
+  .fp-select { width: 100%; padding: 11px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; background: #fff; font-family: inherit; outline: none; color: #2d3748; }
+  .fp-select:focus { border-color: #2b6cb0; }
+  .fp-channel-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fp-channel { padding: 9px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1.5px solid #e2e8f0; background: #fff; font-weight: 500; color: #4a5568; transition: all 0.15s; user-select: none; }
+  .fp-channel:hover { border-color: #2b6cb0; color: #2b6cb0; }
+  .fp-channel.active { background: linear-gradient(135deg,#4299e1,#2b6cb0); color: #fff; border-color: #2b6cb0; box-shadow: 0 2px 8px rgba(43,108,176,0.25); }
+  .fp-actions { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid #e8e8e8; background: #fff; gap: 12px; }
+
+  /* AI 提取项 - 编辑/删除按钮 */
+  .parse-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .parse-actions span { font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+  .parse-actions .edit { color: #2b6cb0; background: #ebf8ff; }
+  .parse-actions .edit:hover { background: #bee3f8; }
+  .parse-actions .del { color: #c53030; background: #fed7d7; }
+  .parse-actions .del:hover { background: #feb2b2; }
+
+  /* 新增待办 */
+  .todo-add-row { padding: 8px 10px; border: 1.5px dashed #cbd5e0; border-radius: 6px; margin-top: 8px; color: #718096; font-size: 12px; cursor: pointer; text-align: center; transition: all 0.15s; }
+  .todo-add-row:hover { border-color: #2b6cb0; color: #2b6cb0; background: #f0f7ff; }
+
+  /* 资料列表 进入知识库链接 */
+  .material-mini .ml-link { font-size: 11px; color: #2b6cb0; padding: 2px 8px; border-radius: 4px; background: #ebf8ff; cursor: pointer; }
+  .material-mini .ml-link:hover { background: #bee3f8; }
+
+  /* 沟通预演输入框 */
+  .drill-input-box { width: 100%; min-height: 70px; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.6; outline: none; background: #fff; margin-top: 6px; resize: vertical; font-family: inherit; }
+  .drill-input-box:focus { border-color: #2b6cb0; }
+  .drill-input-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .drill-hint { font-size: 11px; color: #999; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(26,32,46,0.94); color: #fff; padding: 12px 22px; border-radius: 24px; font-size: 13px; z-index: 600; opacity: 0; transition: all 0.3s; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 战报卡 */
+  .war-card { padding: 10px; background: #f5f7fa; border-radius: 8px; margin-bottom: 8px; }
+  .war-card .war-emoji { font-size: 16px; }
+  .war-card .war-title { font-weight: 600; font-size: 13px; }
+  .war-card .war-sub { color: #666; font-size: 12px; }
+
+  .demo-tabs { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #fff; border-radius: 24px; padding: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: flex; gap: 3px; z-index: 500; flex-wrap: wrap; max-width: 96vw; }
+  .demo-tab { padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: none; background: transparent; color: #666; font-family: inherit; }
+  .demo-tab.active { background: #2b6cb0; color: #fff; }
+
+  @media (max-width: 1024px) { .cp-body { flex-direction: column; } .cp-aside { width: 100%; } .split-row, .split-row-half { flex-direction: column; } .split-col-left, .split-col-right, .split-col-half { width: 100%; } .need-motivation-grid { grid-template-columns: 1fr; } .scenario-grid { grid-template-columns: 1fr; } .score-dims { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) { .main { flex-direction: column; } .col-left, .col-center, .col-right { width: 100% !important; min-width: auto; } .kb-case-grid { grid-template-columns: 1fr; } .info-row { flex-direction: column; gap: 4px; } .dmu-cards { flex-direction: column; } .chat-float { width: calc(100vw - 32px); height: 80vh; right: auto; } }
+  .hidden { display: none !important; }
+
+  /* 意向评分右滑面板 */
+  .intent-panel { position: fixed; top: 0; right: 0; width: 384px; max-width: 92vw; height: 100vh; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.12); z-index: 320; transform: translateX(100%); transition: transform .3s ease; overflow-y: auto; padding: 22px; }
+  .intent-panel.show { transform: translateX(0); }
+  .intent-head { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .intent-close { cursor: pointer; color: #999; font-size: 16px; }
+  .intent-total { font-size: 13px; color: #4a5568; margin-bottom: 14px; }
+  .intent-total b { font-size: 30px; color: #2b6cb0; margin-right: 6px; }
+  .intent-level { font-size: 13px; font-weight: 600; }
+  .dim-row { margin-bottom: 11px; }
+  .dim-name { font-size: 12px; color: #4a5568; }
+  .dim-w { color: #a0aec0; font-size: 10px; margin-left: 4px; }
+  .dim-bar { height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; margin: 4px 0 2px; }
+  .dim-bar span { display: block; height: 100%; background: linear-gradient(90deg,#4299e1,#667eea); }
+  .dim-v { font-size: 11px; color: #718096; text-align: right; }
+  .intent-sub { font-weight: 600; font-size: 13px; margin: 16px 0 6px; color: #2b6cb0; }
+  .d2-bar-row { height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+  .d2-bar-fill { display: block; height: 100%; background: linear-gradient(90deg,#4299e1,#667eea); }
+  .src-tag { font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 4px; }
+  .src-ask { background: #ebf8ff; color: #2b6cb0; }
+  .src-active { background: #c6f6d5; color: #276749; }
+  .d2-item { font-size: 12px; color: #4a5568; margin: 5px 0; line-height: 1.6; }
+  .intent-d5-box { font-size: 12px; color: #4a5568; line-height: 1.7; }
+  .intent-note { margin-top: 18px; font-size: 11px; color: #a0aec0; line-height: 1.7; border-top: 1px solid #edf2f7; padding-top: 12px; }
+  .score-hint { font-size: 10px; color: #2b6cb0; margin-top: 2px; }
+  .cp-banner-score { cursor: pointer; }
+  /* 直觉判断块（Task2·②D5 备注） */
+  .intuition-block { background:#f7fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin:12px 0; }
+  .intuition-title { font-size:12px; color:#4a5568; font-weight:600; margin-bottom:8px; }
+  .degree-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .degree-opt { font-size:12px; padding:5px 12px; border:1px solid #cbd5e0; border-radius:16px; cursor:pointer; color:#4a5568; background:#fff; }
+  .degree-opt.on { background:#2b6cb0; color:#fff; border-color:#2b6cb0; }
+  .intuition-note-wrap { margin-top:10px; }
+  .intuition-note { width:100%; height:64px; border:1px solid #cbd5e0; border-radius:8px; padding:8px; font-size:12px; resize:none; font-family:inherit; box-sizing:border-box; }
+  .note-counter { text-align:right; font-size:11px; color:#a0aec0; margin-top:4px; }
+  /* 知识库<40% 演练按钮 + 引用块（Task3·③） */
+  .kb-low-demo-btn { font-size:11px; padding:3px 10px; border:1px solid #fbd38d; background:#fffaf0; color:#c05621; border-radius:12px; cursor:pointer; }
+  .kb-low-quote { margin-top:12px; background:#f7fafc; border:1px solid #e2e8f0; border-left:3px solid #2b6cb0; border-radius:8px; padding:12px; font-size:11px; white-space:pre-wrap; color:#2d3748; line-height:1.7; max-height:200px; overflow:auto; }
+</style>
+</head>
+<body>
+
+<div class="app-titlebar"><span class="app-titlebar-icon">🚀</span><span>AI 销售助理</span><span class="app-titlebar-sub">Sales AI · 让每位销售都成为 TopSales</span></div>
+
+<!-- ==================== 工作台 ==================== -->
+<div id="view-workbench" class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;"><div class="avatar">陈</div><span style="font-weight:600;">陈销售</span></div>
+    <div style="color:#666;font-size:13px;">2026年8月26日 星期三</div>
+    <div style="display:flex;gap:12px;align-items:center;"><div class="icon-btn">⚙️</div></div>
+  </div>
+  <div class="col col-left">
+    <div class="card">
+      <div class="card-title">📋 今日待办 <span class="count">3 项</span></div>
+      <div class="todo-card urgent" onclick="showCustomerPage()">
+        <div class="todo-header"><div class="todo-customer-name">北京中科智云信息技术有限公司</div><div style="width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;background:#f7fafc;">✏️</div></div>
+        <div class="todo-tags"><span class="todo-tag tag-urgent">🔴 紧急</span><span class="todo-tag tag-warning">⚠️ 超期 5 天</span></div>
+        <div class="todo-info"><div class="todo-info-label">📌 预警详情</div>客户 5 天前沟通后无回复，竞品可能已介入；CTO 张总上次表示要看方案</div>
+        <div class="todo-info"><div class="todo-info-label">✅ 具体待办</div>① 电话张总确认方案反馈 ② 询问竞品接触 ③ 发送产品案例资料</div>
+        <div class="todo-meta"><span>👤 CTO 张总</span><span>⏰ 今日 18:00</span></div>
+      </div>
+      <div class="todo-card warning" onclick="showCustomerPage()">
+        <div class="todo-header"><div class="todo-customer-name">成都远见精密机械制造股份有限公司</div></div>
+        <div class="todo-tags"><span class="todo-tag tag-warning">🟡 待跟进</span><span class="todo-tag tag-info">📅 预算审批中</span></div>
+        <div class="todo-info"><div class="todo-info-label">📌 预警详情</div>预算审批 3 天后截止，单次上限 30 万，错过将失去本季度窗口</div>
+        <div class="todo-info"><div class="todo-info-label">✅ 具体待办</div>① 微信确认审批进度 ② 准备拆分报价 ③ 发送 ROI 模型</div>
+        <div class="todo-meta"><span>👤 采购总监 李总</span><span>⏰ 8月29日</span></div>
+      </div>
+      <div class="todo-card normal" onclick="showCustomerPage()">
+        <div class="todo-header"><div class="todo-customer-name">杭州盛达进出口贸易有限公司</div></div>
+        <div class="todo-tags"><span class="todo-tag tag-info">📝 补录跟进</span></div>
+        <div class="todo-info"><div class="todo-info-label">📌 预警详情</div>昨日电话后未提交纪要，AI 已转写但需确认</div>
+        <div class="todo-info"><div class="todo-info-label">✅ 具体待办</div>① 查看 AI 提取的要点 ② 确认补录 ③ 回方案补充</div>
+        <div class="todo-meta"><span>👤 总经理 王总</span><span>⏰ 今日内</span></div>
+      </div>
+      <div class="todo-add" onclick="toast('✏️ 可在此补充自定义待办（演示数据）')">＋ 添加待办</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 客户池 <span class="count">6 个</span></div>
+      <input class="search-box" placeholder="🔍 搜索客户名称..." oninput="filterCustomers(this.value)">
+      <div class="filter-bar"><button class="filter-btn" onclick="toast('行业筛选（演示）')">行业 ▼</button><button class="filter-btn" onclick="toast('阶段筛选（演示）')">阶段 ▼</button><button class="filter-btn" onclick="toast('紧急筛选（演示）')">紧急 ▼</button><button class="filter-btn" onclick="toast('排序（演示）')">排序 ▼</button></div>
+      <div id="customer-pool">
+        <div class="customer-card" onclick="showCustomerPage()"><span class="customer-tag ct-red">🔴</span><strong>北京中科智云信息技术有限公司</strong><div style="color:#999;font-size:12px;margin-top:4px;">互联网 | 200人 | 待跟进 · 5天前</div></div>
+        <div class="customer-card" onclick="showCustomerPage()"><span class="customer-tag ct-yellow">🟡</span><strong>成都远见精密机械制造股份有限公司</strong><div style="color:#999;font-size:12px;margin-top:4px;">制造 | 500人 | 审批中 · 2天前</div></div>
+        <div class="customer-card" onclick="showCustomerPage()"><span class="customer-tag ct-green">🟢</span><strong>杭州盛达进出口贸易有限公司</strong><div style="color:#999;font-size:12px;margin-top:4px;">贸易 | 100人 | 方案中 · 1天前</div></div>
+        <div class="customer-card" onclick="showCustomerPage()"><span class="customer-tag ct-green">🟢</span><strong>深圳华讯电子科技有限公司</strong><div style="color:#999;font-size:12px;margin-top:4px;">电子 | 300人 | 方案中 · 3天前</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col col-center">
+    <div class="ai-greeting"><h3>🤖 早上好，陈销售！</h3><p>今天有 3 位客户等你联系，已帮你排好优先级。上周识别的 2 个痛点今天可能派上用场，加油 💪</p></div>
+    <div class="card method-card">
+      <div class="method-title">💡 今日方法锦囊</div>
+      <div class="method-desc"><strong>痛点：</strong>「预算审批流程长」<br><strong>方法：</strong>三步法 · 拆分报价 → 同行案例 → 灵活增减<br><strong>适用：</strong>北京中科智云 + 成都远见</div>
+      <div class="action-btns"><button class="btn btn-primary" onclick="showKB()">查看知识库</button><button class="btn btn-secondary" onclick="openComprehensiveDrill()">沟通预演</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📚 为你推荐的知识</div>
+      <div class="rec-item"><span>📖</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">《制造行业预算敏感型客户成单打法》</div><div style="color:#999;font-size:11px;">推荐给：成都远见精密</div><div class="rec-reason">💡 客户正处于预算审批阶段，单次上限 30 万。"分阶段报价+季度订阅"可把首期压到 25 万，提高过审率 60%。</div></div></div>
+      <div class="rec-item"><span>📖</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">《互联网企业 CRM 实施周期应对》</div><div style="color:#999;font-size:11px;">推荐给：北京中科智云</div><div class="rec-reason">💡 客户担心实施影响业务。"渐进部署+分模块上线"可把 6 周压缩到 3 周，不影响连续性。</div></div></div>
+      <div class="rec-item"><span>📖</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">《价格异议处理的 3 个话术框架》</div><div style="color:#999;font-size:11px;">推荐给：本周全部 3 位客户</div><div class="rec-reason">💡 3 位客户都有价格顾虑，此框架可作为标准话术模板。</div></div></div>
+      <button class="btn btn-secondary" style="width:100%;margin-top:8px;" onclick="showKB()">进入知识库 →</button>
+    </div>
+    <div class="insight-card">
+      <div class="card-title" style="color:#276749;border-bottom:1px dashed #9ae6b4;padding-bottom:8px;">🔍 小助理今天发现</div>
+      <div class="insight-item"><div class="insight-num">1</div><div class="insight-content"><strong>北京中科智云</strong>「预算审批」痛点，AI 已准备 3 套话术+2 个同行案例，张总疑问点已覆盖 90%。<br><span class="insight-link" onclick="openChatPrefill('针对北京中科智云的预算审批异议，请给出今日沟通话术要点')">→ 一键生成今日沟通话术</span></div></div>
+      <div class="insight-item"><div class="insight-num">2</div><div class="insight-content"><strong>成都远见精密</strong>3 天后审批截止，类似客户最佳跟进窗口是截止前 48 小时。<br><span class="insight-link" onclick="toast('🔔 已为「成都远见精密」设置跟进提醒：8月28日 14:00')">→ 设置跟进提醒</span></div></div>
+      <div class="insight-item"><div class="insight-num">3</div><div class="insight-content">上周识别的<strong>「数据安全顾虑」</strong>痛点，本周新增 2 位客户，可复用之前的打法。<br><span class="insight-link" onclick="showKB()">→ 查看复用方法</span></div></div>
+    </div>
+    <div class="ai-cta-row">
+      <div class="ai-cta ai-cta-primary" onclick="openAIChat()">
+        <div class="cta-title">🧠 AI 综合查询</div>
+        <div class="cta-sub">大模型问答 · 知识库检索 · 客户分析</div>
+      </div>
+      <div class="ai-cta ai-cta-orange" onclick="openDynamicPower()">
+        <div class="cta-title">⚡ 动力加速</div>
+        <div class="cta-sub">一键智能跟进 · 推动成交加速</div>
+      </div>
+    </div>
+  </div>
+  <!-- AI 对话悬浮入口（强化） -->
+  <div class="ai-fab" onclick="openAIChat()" title="AI 对话">💬</div>
+  <div class="col col-right" id="right-col">
+    <div class="collapse-btn" onclick="toggleRight()" title="收起/展开右侧栏">◀</div>
+    <div class="col-inner">
+      <div class="card"><div class="card-title">🎯 8月目标</div><div class="kpi-row"><div class="kpi-item"><div class="kpi-value" id="kpi-pct">64%</div><div class="kpi-label">已完成</div></div><div class="kpi-item"><div class="kpi-value" id="kpi-deal">32万</div><div class="kpi-label">已成交</div></div><div class="kpi-item"><div class="kpi-value" id="kpi-left">18万</div><div class="kpi-label">还差</div></div></div><div class="progress-bar"><div class="progress-fill" id="kpi-bar" style="width:64%"></div></div></div>
+      <div class="card"><div class="card-title">🏆 部门排名</div><div class="rank-row"><div class="rank-num first">1</div><div style="flex:1;font-size:12px;">陈销售（你）</div><div class="rank-bar"><div class="rank-fill" style="width:100%"></div></div><div class="rank-value">¥320k</div></div><div class="rank-row"><div class="rank-num">2</div><div style="flex:1;font-size:12px;">王销售</div><div class="rank-bar"><div class="rank-fill" style="width:87%"></div></div><div class="rank-value">¥280k</div></div><div class="rank-row"><div class="rank-num">3</div><div style="flex:1;font-size:12px;">李销售</div><div class="rank-bar"><div class="rank-fill" style="width:78%"></div></div><div class="rank-value">¥250k</div></div></div>
+      <div class="card"><div class="card-title">⭐ 绩效档位</div><div style="font-size:13px;display:flex;align-items:center;gap:8px;">当前：<span class="tier-badge"><span class="tier-icon">A</span><span>A 档</span></span></div><div style="font-size:12px;color:#666;margin-top:6px;">升 S 档还需 ¥80k</div><div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:75%"></div></div><div style="font-size:11px;color:#999;margin-top:6px;">💡 A 档：本月额外奖金 +5%；S 档：+15% + 优先晋升</div></div>
+      <div class="card"><div class="card-title">🎁 本月激励</div><div style="font-size:12px;margin-bottom:6px;">成单：<span id="mot-deal">3</span>/5 单（再 2 单拿 ¥3000）</div><div class="progress-bar"><div class="progress-fill" id="mot-deal-bar" style="width:60%"></div></div><div style="font-size:12px;margin-top:8px;margin-bottom:6px;">跟进：12/20 次（再 8 次拿 ¥800）</div><div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div></div>
+      <div class="card">
+        <div class="tab-bar"><div class="tab active" onclick="switchWarTab(this,'dept')">部门战报</div><div class="tab" onclick="switchWarTab(this,'mine')">我的战报</div></div>
+        <div id="war-dept">
+          <div id="war-report-list">
+            <div class="war-card"><span class="war-emoji">🎉</span> <span class="war-title">王销售 成交 ¥150k！</span><div class="war-sub">客户：深圳华讯电子</div></div>
+          </div>
+        </div>
+        <div id="war-mine" class="hidden">
+          <div class="war-card"><span class="war-emoji">🏆</span> <span class="war-title">你 成交 ¥80k</span><div class="war-sub">客户：北京中科智云 · 2026-08-20</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 客户档案 ==================== -->
+<div id="view-customer" class="customer-page hidden">
+  <div class="cp-banner">
+    <div class="cp-banner-logo">中</div>
+    <div class="cp-banner-info">
+      <h2>北京中科智云信息技术有限公司</h2>
+      <div class="cp-banner-meta"><span>👤 主要联系人：CTO 张总</span><span>📍 客户阶段：<span class="stage-tag">💡 方案沟通中</span></span></div>
+    </div>
+    <div class="cp-banner-score" onclick="openIntentPanel()" title="点击查看五维评分依据">
+      <div class="num">92</div>
+      <div class="label">AI 综合意向</div>
+      <div class="trend">↑ 动力加速</div>
+      <div class="score-hint">▸ 看依据</div>
+    </div>
+    <button class="cp-banner-back" onclick="showWorkbench()">← 返回</button>
+  </div>
+
+  <div class="cp-body">
+    <div class="cp-main">
+      <!-- 1. 基础信息 + 决策链 -->
+      <div class="cp-sec">
+        <div class="cp-sec-head">📋 客户基础信息 + 决策链路 <span class="badge badge-ai">DMU 5人</span><span class="spacer"></span><button class="basic-edit-btn" id="basic-edit-toggle" onclick="toggleEditBasicInfo()">✏️ 编辑</button></div>
+        <div class="info-row" id="basic-info-row">
+          <div class="info-pair" data-field="行业"><span class="lbl">行业：</span><span class="val">互联网·云计算</span></div>
+          <div class="info-pair" data-field="规模"><span class="lbl">规模：</span><span class="val">200人</span></div>
+          <div class="info-pair" data-field="地点"><span class="lbl">地点：</span><span class="val">北京·海淀</span></div>
+          <div class="info-pair" data-field="官网"><span class="lbl">官网：</span><span class="val">www.zkzyun.com</span></div>
+          <div class="info-pair" data-field="主要联系人"><span class="lbl">主要联系人：</span><span class="val">CTO 张总</span></div>
+          <div class="info-pair" data-field="客户阶段"><span class="lbl">客户阶段：</span><span class="val"><span class="stage-tag">💡 方案沟通中</span></span></div>
+        </div>
+        <div class="basic-summary">
+          🤖 <b>AI 综合概要：</b>互联网·云计算行业、200 人规模，北京海淀总部。CTO 张总是关键决策者，CEO 李总最终拍板。当前处于<b>方案沟通中</b>，Q4 KPI 倒计时驱动落地，关注<b>预算审批流程</b>与<b>数据迁移风险</b>两个核心问题。
+        </div>
+        <div class="decision-chain">
+          <div class="chain-node"><div class="dmu-card-avatar" style="background:#9f7aea;width:30px;height:30px;font-size:11px;margin:0 auto 6px;">刘</div><div class="dmu-card-name">刘经理</div><div class="dmu-card-role" style="font-size:10px;">市场部·内部推动</div><span class="dmu-card-tag" style="background:#ebf8ff;color:#2b6cb0;font-size:9px;">影响者</span></div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-node"><div class="dmu-card-avatar" style="background:#d69e2e;width:30px;height:30px;font-size:11px;margin:0 auto 6px;">王</div><div class="dmu-card-name">王总监</div><div class="dmu-card-role" style="font-size:10px;">销售总监·使用者</div><span class="dmu-card-tag" style="background:#fefcbf;color:#b7791f;font-size:9px;">使用者</span></div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-node core"><div class="dmu-card-avatar" style="background:#38a169;width:30px;height:30px;font-size:11px;margin:0 auto 6px;">张</div><div class="dmu-card-name" style="color:#276749;">张总</div><div class="dmu-card-role" style="font-size:10px;">CTO·技术决策</div><span class="dmu-card-tag" style="background:#c6f6d5;color:#276749;font-size:9px;">决策者</span></div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-node core"><div class="dmu-card-avatar" style="background:#2b6cb0;width:30px;height:30px;font-size:11px;margin:0 auto 6px;">李</div><div class="dmu-card-name" style="color:#2b6cb0;">李总</div><div class="dmu-card-role" style="font-size:10px;">CEO·最终签字</div><span class="dmu-card-tag" style="background:#bee3f8;color:#2b6cb0;font-size:9px;">决策者</span></div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-node"><div class="dmu-card-avatar" style="background:#e53e3e;width:30px;height:30px;font-size:11px;margin:0 auto 6px;">陈</div><div class="dmu-card-name">陈助理</div><div class="dmu-card-role" style="font-size:10px;">采购·守门人</div><span class="dmu-card-tag" style="background:#fed7d7;color:#c53030;font-size:9px;">守门人</span></div>
+        </div>
+      </div>
+
+      <!-- 2. 需求+动力+阻力（3栏 + 每栏独立编辑） -->
+      <div class="cp-sec highlight">
+        <div class="cp-sec-head">
+          🎯 客户需求 + 推进动力 + 成交阻力
+          <span class="badge badge-ai">BANT</span>
+          <span class="spacer"></span>
+          <button class="btn btn-primary btn-lg" onclick="openFollowUp()">＋ 新增跟进记录</button>
+        </div>
+        <div class="nm3-cols">
+          <!-- 客户需求 -->
+          <div class="nm3-col needs">
+            <div class="nm3-col-head"><div class="nm3-col-title">📋 客户需求</div><span class="col-edit" onclick="toggleNmCol('needs',this)">✏️ 编辑</span></div>
+            <div class="nm3-list" id="nm-needs">
+              <div class="nm3-item"><span class="nm-icon done">✓</span><div class="nm3-text" contenteditable="false">提升销售效率（50 人团队用 Excel）</div></div>
+              <div class="nm3-item"><span class="nm-icon done">✓</span><div class="nm3-text" contenteditable="false">客户数据统一管理（分散、撞单）</div></div>
+              <div class="nm3-item"><span class="nm-icon done">✓</span><div class="nm3-text" contenteditable="false">支持私有化部署（安全合规）</div></div>
+              <div class="nm3-item"><span class="nm-icon pending">○</span><div class="nm3-text" contenteditable="false">Q4 完成试点（距年底 4 个月）</div></div>
+              <div class="nm3-item"><span class="nm-icon pending">○</span><div class="nm3-text" contenteditable="false">实施周期 ≤ 3 周（不能中断）</div></div>
+            </div>
+            <div class="nm3-add" onclick="addNm3Item('needs')">＋ 新增需求</div>
+          </div>
+          <!-- 推进动力 -->
+          <div class="nm3-col power">
+            <div class="nm3-col-head"><div class="nm3-col-title">🚀 推进动力</div><span class="col-edit" onclick="toggleNmCol('power',this)">✏️ 编辑</span></div>
+            <div class="nm3-list" id="nm-power">
+              <div class="nm3-item"><span class="nm-icon bolt">⚡</span><div class="nm3-text" contenteditable="false">2025 年前必须完成系统现代化（KPI）</div></div>
+              <div class="nm3-item"><span class="nm-icon bolt">⚡</span><div class="nm3-text" contenteditable="false">CTO 张总已认可架构并推动立项</div></div>
+              <div class="nm3-item"><span class="nm-icon bolt">⚡</span><div class="nm3-text" contenteditable="false">竞品已介入，客户有紧迫感</div></div>
+              <div class="nm3-item"><span class="nm-icon bolt">⚡</span><div class="nm3-text" contenteditable="false">市场部刘经理主动配合做推动者</div></div>
+            </div>
+            <div class="nm3-add" onclick="addNm3Item('power')">＋ 新增动力</div>
+          </div>
+          <!-- 成交阻力 -->
+          <div class="nm3-col resist">
+            <div class="nm3-col-head"><div class="nm3-col-title">⚠️ 成交阻力</div><span class="col-edit" onclick="toggleNmCol('resist',this)">✏️ 编辑</span></div>
+            <div class="nm3-list" id="nm-resist">
+              <div class="nm3-item"><span class="nm-icon high">高</span><div class="nm3-text" contenteditable="false">预算审批流程长（CFO→CEO 两级，单次上限 30 万）</div></div>
+              <div class="nm3-item"><span class="nm-icon mid">中</span><div class="nm3-text" contenteditable="false">数据迁移丢失风险（ERP 接口老旧，CTO 重点关注）</div></div>
+              <div class="nm3-item"><span class="nm-icon mid">中</span><div class="nm3-text" contenteditable="false">CEO 李总未见过方案（需准备经济性论证材料）</div></div>
+              <div class="nm3-item"><span class="nm-icon low">低</span><div class="nm3-text" contenteditable="false">使用门槛敏感（王总监担心 CRM 操作复杂度）</div></div>
+            </div>
+            <div class="nm3-add" onclick="addNm3Item('resist')">＋ 新增阻力</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AI 沟通策略（立体化 · v10） -->
+      <div class="cp-sec highlight">
+        <div class="cp-sec-head">🤖 AI 沟通策略 <span class="badge badge-ai">深度分析</span><span class="spacer"></span><button class="kb-low-demo-btn" onclick="showLowCoverage()">🧪 命中&lt;40% 演练</button><button class="kb-low-demo-btn" onclick="refreshStrategy()" style="background:#f0f7ff;color:#2b6cb0;border-color:#bee3f8;">🔄 更新分析</button><span style="font-size:11px;color:#666;">综合信心度 <b style="color:#276749;font-size:13px;">92%</b></span></div>
+
+        <!-- Hero：AI 第一人称 -->
+        <div class="ai-s-hero">
+          <div class="ai-s-hero-avatar">🤖</div>
+          <div class="ai-s-hero-text">我已读完客户档案。<b>预算审批流程长</b>、<b>数据迁移风险</b>、<b>CEO 没见过方案</b>三个阻力中，预算阻力最致命。<br>我从知识库找到 2 个类似成单案例（《浪潮 80→60 万拆分报价》《金山云数据迁移先行验证》），结合 BANT 计算，给你 <b>4 条策略</b>。建议优先组合 <b>① + ③</b>，本周内推进。</div>
+          <span class="ai-s-hero-tip">📌 一句话总结：把 80 万拆成季度，先打掉 CFO，2 周内可签。</span>
+        </div>
+
+        <!-- Chain-of-Thought 思考过程（可展开） -->
+        <div class="ai-cot" id="ai-cot">
+          <div class="ai-cot-head" onclick="toggleCot()">
+            <div class="label">🧠 AI 思考过程 <span style="color:#999;font-weight:400;">· 4 步推理 · 点击展开</span></div>
+            <div class="arrow">▼</div>
+          </div>
+          <div class="ai-cot-body">
+            <div class="cot-step"><div class="step-num">1</div><div class="step-content"><b>① 识别客户痛点 &nbsp;·&nbsp; 重要度评分</b>
+              <ul>
+                <li>🟥 <b>预算审批流程长</b> — 严重程度：高 · 一旦受阻，80% 谈崩</li>
+                <li>🟧 <b>数据迁移丢失风险</b> — 严重程度：高 · CTO 列为前置条件</li>
+                <li>🟧 <b>CEO 未见过方案</b> — 严重程度：中 · 决策链必经节点</li>
+                <li>🟨 <b>使用门槛</b> — 严重程度：低 · 王总监担忧，可培训解决</li>
+              </ul>
+            </div></div>
+            <div class="cot-step"><div class="step-num">2</div><div class="step-content"><b>② 检索知识库 · 类似成单案例</b>
+              <ul>
+                <li><span class="step-tag cot-tag-hit">✓ 命中</span> 浪潮软件（80→60 万季度拆分，2 周过审）</li>
+                <li><span class="step-tag cot-tag-hit">✓ 命中</span> 金山云（数据迁移"先验证再切换"，5 天现场完成）</li>
+                <li><span class="step-tag cot-tag-miss">✗ 不适用</span> 瓜子二手车（价格敏感度低，方案不同）</li>
+              </ul>
+            </div></div>
+            <div class="cot-step"><div class="step-num">3</div><div class="step-content"><b>③ BANT 框架分析</b>
+              <ul>
+                <li><b>Budget</b>：80-100 万 → 调整到 50-65 万（缩 20%，CFO 主导）</li>
+                <li><b>Authority</b>：决策链 = 技术评估（CTO）→ 商务（CEO）→ 财务（CFO）→ 采购</li>
+                <li><b>Need</b>：紧迫（Q4 KPI，年底前必上线）</li>
+                <li><b>Timeline</b>：11 月 30 日前签约，最迟 12 月试点</li>
+              </ul>
+            </div></div>
+            <div class="cot-step"><div class="step-num">4</div><div class="step-content"><b>④ 策略生成 · 按优先级排序</b>
+              <ul>
+                <li>① 拆季度订阅 — <b>95%</b> 信心（直接破除 CFO 阻力）</li>
+                <li>② 数据迁移保障 — <b>88%</b> 信心（满足 CTO 前置条件）</li>
+                <li>③ ROI 测算 + CEO 汇报 — <b>75%</b> 信心（打通 CEO 决策环）</li>
+                <li>④ 限时折扣 — <b>65%</b> 信心（造紧迫感，但有杀价风险）</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- 策略时间线（4 个执行阶段） -->
+        <div class="ai-timeline-bar">
+          <div class="ai-tl-step"><div>📅 本周</div><div class="tl-stage">① + ②</div></div>
+          <div class="ai-tl-step"><div>📅 本周（周中）</div><div class="tl-stage">③ 准备</div></div>
+          <div class="ai-tl-step"><div>📅 Q4 月底</div><div class="tl-stage">③ 汇报</div></div>
+          <div class="ai-tl-step"><div>📅 收官</div><div class="tl-stage">④ 造势</div></div>
+        </div>
+
+        <!-- 4 个策略卡片 -->
+        <div class="strat-list">
+          <!-- ① 拆季度订阅 - 必做 -->
+          <div class="strat-card lv-must">
+            <div class="strat-head">
+              <div class="strat-num">1</div>
+              <div class="strat-title">拆季度订阅，降低审批门槛<small>必做</small></div>
+              <div class="strat-conf"><span class="strat-conf-bar"><span class="strat-conf-fill" style="width:95%"></span></span><span>95%</span></div>
+            </div>
+            <div class="strat-body"><b>策略：</b>将总价 80 万拆为<b>季度订阅</b>（每季度 ≤ 25 万），单笔金额低于 CFO 30 万单笔审批上限，绕开二级审批。</div>
+            <div class="strat-meta">
+              <div class="strat-meta-row"><span class="mr-label">🎯 触发</span><span class="mr-val">客户一听到报价就犹豫、看预算审批表</span></div>
+              <div class="strat-meta-row"><span class="mr-label">💬 话术</span><span class="mr-val">「为帮贵司规避 30 万审批门槛，我准备了两套季度报价，先解锁第一期 25 万，第二期根据效果升级」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🗣 反应</span><span class="mr-val">「听上去灵活，但我们要保证能续约到 80 万」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🛡 预案</span><span class="mr-val">签 2 年长协，价格锁定 = 客户安心，我们锁定 ARR</span></div>
+              <div class="strat-meta-row"><span class="mr-label">📉 反事实</span><span class="mr-val">如不采用，<b>签约延后 2-3 周</b>，年度抢单失败概率 ↑35%</span></div>
+            </div>
+            <div class="strat-actions">
+              <button class="strat-act primary" onclick="generateTacticScript(0)">💬 生成参考话术</button>
+              <button class="strat-act" onclick="toast('📝 报价单已生成（含 4 季度拆分）')">生成报价单</button>
+              <button class="strat-act" onclick="toast('📖 已调取「浪潮 80→60 万」案例')">查看案例</button>
+            </div>
+          </div>
+
+          <!-- ② 数据迁移零风险方案 - 推荐 -->
+          <div class="strat-card lv-recommend">
+            <div class="strat-head">
+              <div class="strat-num">2</div>
+              <div class="strat-title">数据迁移零风险保障方案<small>推荐</small></div>
+              <div class="strat-conf"><span class="strat-conf-bar"><span class="strat-conf-fill" style="width:88%"></span></span><span>88%</span></div>
+            </div>
+            <div class="strat-body"><b>策略：</b>提供《数据迁移零风险保障方案》，含<b>分步迁移、回滚机制、7×24 技术驻场</b>，满足 CTO"必须验证才推进"的硬性前置条件。</div>
+            <div class="strat-meta">
+              <div class="strat-meta-row"><span class="mr-label">🎯 触发</span><span class="mr-val">李华（技术总监）追问接口 / 担心同步延迟</span></div>
+              <div class="strat-meta-row"><span class="mr-label">💬 话术</span><span class="mr-val">「我们对 200+ ERP 接口做过兼容性测试，可先沙盒验证，您签字背书后再切换」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🗣 反应</span><span class="mr-val">「技术上能接受，但要算 30 天验收期」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🛡 预案</span><span class="mr-val">签 SLA 90% 同步延迟 &lt;2s，未达退款</span></div>
+              <div class="strat-meta-row"><span class="mr-label">📉 反事实</span><span class="mr-val">如不采用，CTO 阻力 → <b>项目冻结概率 60%</b></span></div>
+            </div>
+            <div class="strat-actions">
+              <button class="strat-act primary" onclick="generateTacticScript(1)">💬 生成参考话术</button>
+              <button class="strat-act" onclick="toast('📄 《数据迁移零风险保障方案》PDF 已生成')">生成方案 PDF</button>
+              <button class="strat-act" onclick="toast('🎤 已预约技术总监视频会谈')">预约技术会谈</button>
+            </div>
+          </div>
+
+          <!-- ③ ROI 模型 + CEO 汇报 - 备选 -->
+          <div class="strat-card lv-optional">
+            <div class="strat-head">
+              <div class="strat-num">3</div>
+              <div class="strat-title">ROI 测算模型 + CEO 经济论证<small>备选</small></div>
+              <div class="strat-conf"><span class="strat-conf-bar"><span class="strat-conf-fill" style="width:75%"></span></span><span>75%</span></div>
+            </div>
+            <div class="strat-body"><b>策略：</b>准备 ROI 测算模型（<b>效率提升 30% = 年省 150 万</b>），配 2 个同行案例（金山云 / 浪潮），安排 CEO 一对一汇报。</div>
+            <div class="strat-meta">
+              <div class="strat-meta-row"><span class="mr-label">🎯 触发</span><span class="mr-val">李总询问"我为什么要花钱"+ 决策关前期</span></div>
+              <div class="strat-meta-row"><span class="mr-label">💬 话术</span><span class="mr-val">「我带 ROI 模型拜访您 30 分钟，5 个指标看完您再决定」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🗣 反应</span><span class="mr-val">「数字具体点，不是 PPT 上那种含混的 200%」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🛡 预案</span><span class="mr-val">准备财务模型可调参数（人力 / 时薪 / 人月），让 CEO 自验</span></div>
+              <div class="strat-meta-row"><span class="mr-label">📉 反事实</span><span class="mr-val">如不采用，CEO <b>拍板延迟 1 周</b>，预算窗口可能错过</span></div>
+            </div>
+            <div class="strat-actions">
+              <button class="strat-act primary" onclick="generateTacticScript(2)">💬 生成参考话术</button>
+              <button class="strat-act" onclick="toast('📈 ROI 模型已更新（加分期版本）')">更新 ROI 模型</button>
+              <button class="strat-act" onclick="toast('📅 已预约 CEO 30 分钟')">预约 CEO 汇报</button>
+            </div>
+          </div>
+
+          <!-- ④ 限时折扣 - 谨慎 -->
+          <div class="strat-card lv-careful">
+            <div class="strat-head">
+              <div class="strat-num">4</div>
+              <div class="strat-title">Q4 签约限时折扣 · 造紧迫感<small>谨慎</small></div>
+              <div class="strat-conf"><span class="strat-conf-bar"><span class="strat-conf-fill" style="width:65%"></span></span><span>65%</span></div>
+            </div>
+            <div class="strat-body"><b>策略：</b>利用竞品已介入的客户紧迫感，提供 <b>Q4 签约专属折扣（-8%）</b>，但在<b>策略 ①+② 通过后</b>才抛出，避免杀价风险。</div>
+            <div class="strat-meta">
+              <div class="strat-meta-row"><span class="mr-label">🎯 触发</span><span class="mr-val">客户主动提到竞品 / 暗示决策要加速</span></div>
+              <div class="strat-meta-row"><span class="mr-label">💬 话术</span><span class="mr-val">「Q4 我司签约可享专属折扣，但本月底前锁定」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🗣 反应</span><span class="mr-val">「折扣诱人，但要看服务合同条款」</span></div>
+              <div class="strat-meta-row"><span class="mr-label">🛡 预案</span><span class="mr-val">折扣绑定 2 年合同 + Q1 续约锁价，封堵压价空间</span></div>
+              <div class="strat-meta-row"><span class="mr-label">📉 反事实</span><span class="mr-val">用过早 = <b>利润下降</b>；用太晚 = 0 转化；建议放最后</span></div>
+            </div>
+            <div class="strat-actions">
+              <button class="strat-act" onclick="generateTacticScript(3)">💬 生成参考话术</button>
+              <button class="strat-act" onclick="toast('⏰ Q4 倒计时：67 天（已设提醒）')">设置 Q4 倒计时</button>
+              <button class="strat-act" onclick="toast('🆚 竞品对比表已生成')">竞品对比</button>
+            </div>
+          </div>
+
+          <!-- 决策矩阵 -->
+          <div class="ai-decision-matrix">
+            <div class="dm-title">🧮 策略组合决策矩阵</div>
+            <div class="dm-grid">
+              <div class="h">组合方案</div><div class="h">综合信心度</div><div class="h">预计成交时间</div><div class="h">毛利预期</div>
+              <div class="d-combo">① + ③（必做 + 备选）</div><div class="d-score">⭐⭐⭐⭐ 89%</div><div class="d-date">11/15 (最快)</div><div class="d-score">75%</div>
+              <div class="d-combo">① + ② + ③（推荐组合）</div><div class="d-score">⭐⭐⭐⭐⭐ 92%</div><div class="d-date">11/22</div><div class="d-score">78%</div>
+              <div>仅 ④（不推荐）</div><div>40%</div><div>12/30+</div><div>62%</div>
+            </div>
+            <div class="dm-final">💡 <b>AI 最终建议</b>：<b>推荐 ① + ② + ③ 组合</b>（执行 89 天，建议今日先把 ① 拆季度方案发给 CFO，把 ② 迁移保障方案同步给 CTO，并启动 ③ ROI 模型准备）。<b>④ 作为收官筹码最后一周才放出</b>，避免利润损失。本组合预计 <b>11/22 签</b>，毛利 78%。</div>
+          </div>
+
+          <!-- 沟通预演 · 模块级统一入口（V2.2·4.2.6） -->
+          <div class="unified-drill-card">
+            <div class="ud-title">🎯 沟通预演 · 综合实战检验</div>
+            <div class="ud-desc">AI 将扮演客户，围绕上面识别出的 <b>3 个痛点</b>随机发问，每个痛点至少被考察 1 次，看你是否灵活调度对应策略。</div>
+            <div class="ud-meta">本轮约 5 轮 · 约 8 分钟 · 结束出完整评估报告（四维 + 痛点×轮次矩阵）</div>
+            <button class="btn btn-orange ud-btn" onclick="openComprehensiveDrill()">▶ 开始综合预演</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 下一步待办 + 配套资料 -->
+      <div class="split-row split-row-half">
+        <div class="split-col-half">
+          <div class="cp-sec">
+            <div class="cp-sec-head">✅ 下一步待办 <span class="badge badge-ok">4 项</span></div>
+            <div class="todo-mini"><div class="todo-mini-box"></div><div><div class="todo-mini-text">提交《安全合规建议书》</div><div class="todo-mini-pri">高 · 截止 10月27日</div></div></div>
+            <div class="todo-mini"><div class="todo-mini-box"></div><div><div class="todo-mini-text">预约技术总监视频会谈</div><div class="todo-mini-pri">方案一 · 待确认</div></div></div>
+            <div class="todo-mini"><div class="todo-mini-box"></div><div><div class="todo-mini-text">更新 ROI 测算模型（加分期）</div><div class="todo-mini-pri">针对财务阻力</div></div></div>
+            <div class="todo-mini"><div class="todo-mini-box"></div><div><div class="todo-mini-text">准备面向 CEO 的经济论证</div><div class="todo-mini-pri">本周内</div></div></div>
+            <div class="todo-add-row" onclick="openTodoModal()">＋ 新增待办</div>
+          </div>
+        </div>
+        <div class="split-col-half">
+          <div class="cp-sec">
+            <div class="cp-sec-head">📎 深度配套资料</div>
+<div class="material-mini"><span class="material-mini-icon">📄</span><div class="material-mini-info"><div class="material-mini-name">《迁移安全白皮书》</div><div class="material-mini-meta">PDF · 4.2MB · 给 CTO</div></div><span class="ml-link" onclick="event.stopPropagation();showKB()">进入知识库 →</span></div>
+          <div class="material-mini"><span class="material-mini-icon">📊</span><div class="material-mini-info"><div class="material-mini-name">《降本增效实战案例》</div><div class="material-mini-meta">PPT · 12.8MB · ROI 论证</div></div><span class="ml-link" onclick="event.stopPropagation();showKB()">进入知识库 →</span></div>
+          <div class="material-mini"><span class="material-mini-icon">🛡️</span><div class="material-mini-info"><div class="material-mini-name">审计合规证书合集</div><div class="material-mini-meta">ZIP · 35MB · 必备件</div></div><span class="ml-link" onclick="event.stopPropagation();showKB()">进入知识库 →</span></div>
+          <div class="material-mini"><span class="material-mini-icon">📈</span><div class="material-mini-info"><div class="material-mini-name">同行 ROI 测算模型</div><div class="material-mini-meta">XLSX · 1.2MB · 给 CEO</div></div><span class="ml-link" onclick="event.stopPropagation();showKB()">进入知识库 →</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. 跟进记录（数据驱动） -->
+      <div class="cp-sec">
+        <div class="cp-sec-head">📝 跟进记录 <span class="badge badge-ok" id="fu-count">4 条</span></div>
+        <div id="followup-list"></div>
+      </div>
+    </div>
+
+    <!-- 右栏：阶段化时间轴（数据驱动，V1.2） -->
+    <div class="cp-aside">
+      <div class="cp-sec" style="position:sticky;top:100px;">
+        <div class="cp-sec-head">📅 全生命周期时间轴</div>
+        <div class="tl-tab-bar">
+          <div class="tl-tab active" data-tab="all" onclick="setTimelineTab('all',this)">全部</div>
+          <div class="tl-tab" data-tab="followup" onclick="setTimelineTab('followup',this)">跟进记录</div>
+        </div>
+        <div class="tl-stages" id="timeline-stages"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 跟进录入 - 侧边面板 -->
+  <div id="followup-float" class="followup-panel">
+    <div class="fp-header"><span>📝 跟进录入 · 北京中科智云</span><span style="cursor:pointer;font-size:18px;line-height:1;" onclick="closeFollowUp()">✕</span></div>
+    <div class="fp-body">
+      <div class="fp-hint">💡 <strong>AI 提示</strong>：可直接在下方沟通要点输入或粘贴会议记录（粘贴即用，无需点按钮）。我会自动提取关键痛点、阻力、情绪，待你确认后写入客户档案。</div>
+
+      <div>
+        <div class="fp-field-label">📌 沟通要点 <span style="font-weight:400;color:#999;font-size:12px;">（必填）</span></div>
+        <div class="fp-input" id="followup-input" contenteditable placeholder="例如：张总表示预算调整到 50-65 万，担心迁移风险..."></div>
+      </div>
+
+      <div>
+        <div class="fp-field-label">👤 沟通对象 <span style="font-weight:400;color:#999;font-size:12px;">（可选）</span></div>
+        <select class="fp-select">
+          <option>👤 张总（CTO）</option>
+          <option>👤 李华（技术总监）</option>
+          <option>👤 王总监（销售总监）</option>
+          <option>👤 刘经理（市场部）</option>
+          <option>👤 李总（CEO）</option>
+          <option>👤 陈助理（采购）</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="fp-field-label">📅 沟通时间 <span style="font-weight:400;color:#999;font-size:12px;">（可选）</span></div>
+        <input class="fp-select" type="datetime-local" value="2026-08-27T10:30" />
+      </div>
+
+      <div>
+        <div class="fp-field-label">🔗 沟通方式</div>
+        <div class="fp-channel-row">
+          <span class="fp-channel active" onclick="toggleChannel(this)">📞 电话</span>
+          <span class="fp-channel" onclick="toggleChannel(this)">💬 微信</span>
+          <span class="fp-channel" onclick="toggleChannel(this)">📅 会议</span>
+          <span class="fp-channel" onclick="toggleChannel(this)">📧 邮件</span>
+          <span class="fp-channel" onclick="toggleChannel(this)">🤝 面访</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="fp-field-label">🎯 沟通目的 <span style="font-weight:400;color:#999;font-size:12px;">（可选）</span></div>
+        <div class="fp-input" contenteditable style="min-height:90px;" placeholder="例如：推进季度拆分方案，争取本周内锁定审批节点..."></div>
+      </div>
+    </div>
+    <div class="fp-actions">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="toast('🎤 语音输入（演示）')" style="padding:8px 14px;">🎤 语音</button>
+      </div>
+      <button class="btn btn-primary" onclick="openParse()" style="padding:10px 22px;font-size:14px;">⚡ 解析痛点 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 解析弹窗 ==================== -->
+<div id="parse-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeParse()">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🤖 AI 提取结果确认</div><div class="close-btn" onclick="closeParse()">✕</div></div>
+    <div style="font-size:13px;color:#666;margin-bottom:12px;">从跟进记录中提取到以下结构化信息，请逐条确认后选择操作：</div>
+    <div class="select-all-bar"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" checked><label for="select-all" style="cursor:pointer;font-weight:600;">全选 / 取消全选</label><span style="margin-left:auto;color:#999;font-size:11px;" id="parse-count">已选 4 / 4 项</span></div>
+    <div class="parse-result"><input type="checkbox" class="parse-checkbox" checked><div style="flex:1;"><div style="font-size:13px;font-weight:600;">💰 预算范围（BUDGET）</div><div class="parse-detail">客户明确预算从 80-100 万调整至 <strong>50-65 万</strong>，缩减约 20%。原因：Q3 预算收紧，CFO 要求削减非核心 IT 支出。<br><strong>影响：</strong>原方案 80 万已超新上限，需调整报价。</div><div class="parse-source">AI 提取自 [08-22 14:30] 张总电话</div><span class="parse-tag parse-tag-high">高优先级 · 影响成交规模</span><div class="parse-actions"><span class="edit" onclick="editParseItem(this)">✏️ 编辑</span><span class="del" onclick="deleteParseItem(this)">🗑 删除</span></div></div></div>
+    <div class="parse-result"><input type="checkbox" class="parse-checkbox" checked><div style="flex:1;"><div style="font-size:13px;font-weight:600;">⚠️ 成交阻力</div><div class="parse-detail">预算审批流程长（CFO→CEO 两级），单次上限 30 万。50-65 万需分 2-3 次审批，每次间隔 5-7 工作日。<br><strong>影响：</strong>签约可能延后 2-3 周。</div><div class="parse-source">AI 提取自 [08-22]+[08-20] 综合分析</div><span class="parse-tag parse-tag-high">高优先级 · 影响签约时间</span><div class="parse-actions"><span class="edit" onclick="editParseItem(this)">✏️ 编辑</span><span class="del" onclick="deleteParseItem(this)">🗑 删除</span></div></div></div>
+    <div class="parse-result"><input type="checkbox" class="parse-checkbox" checked><div style="flex:1;"><div style="font-size:13px;font-weight:600;">🔧 技术顾虑</div><div class="parse-detail">担心 ERP 接口老旧，数据迁移可能：① 同步延迟 ② 数据丢失 ③ 业务中断。<br><strong>影响：</strong>CTO 列为"必须解决才推进"前置条件。</div><div class="parse-source">AI 提取自 [08-20 15:15] 李华微信</div><span class="parse-tag parse-tag-mid">中优先级 · 影响交付</span><div class="parse-actions"><span class="edit" onclick="editParseItem(this)">✏️ 编辑</span><span class="del" onclick="deleteParseItem(this)">🗑 删除</span></div></div></div>
+    <div class="parse-result"><input type="checkbox" class="parse-checkbox" checked><div style="flex:1;"><div style="font-size:13px;font-weight:600;">😊 情绪判定（SENTIMENT）</div><div class="parse-detail">整体：<strong>谨慎但务实</strong>，意向较强但成本极度敏感。张总积极但担忧预算。技术团队谨慎提多个问题。<br><strong>建议：</strong>主动提供分阶段方案降低焦虑。</div><div class="parse-source">AI 综合分析 [08-18~08-22] 全部记录</div><span class="parse-tag parse-tag-low">参考 · 辅助判断</span><div class="parse-actions"><span class="edit" onclick="editParseItem(this)">✏️ 编辑</span><span class="del" onclick="deleteParseItem(this)">🗑 删除</span></div></div></div>
+    <div class="intuition-block">
+      <div class="intuition-title">本次沟通后你的直觉判断（用于校准 AI，可不填）：</div>
+      <div class="degree-row" id="degree-row">
+        <span class="degree-opt" onclick="selectDegree(this)">很低</span><span class="degree-opt" onclick="selectDegree(this)">低</span><span class="degree-opt" onclick="selectDegree(this)">中</span><span class="degree-opt" onclick="selectDegree(this)">高</span><span class="degree-opt" onclick="selectDegree(this)">很高</span>
+      </div>
+      <div class="intuition-note-wrap hidden" id="note-wrap">
+        <textarea id="intuition-note" class="intuition-note" maxlength="200" placeholder="例：CFO 只是口头同意预审，还没走正式审批流；竞品那边据说也在压价……" oninput="document.getElementById('note-count').innerText=this.value.length"></textarea>
+        <div class="note-counter"><span id="note-count">0</span> / 200</div>
+      </div>
+    </div>
+    <div style="background:#fffaf0;border-radius:8px;padding:12px;margin:12px 0;font-size:12px;color:#744210;">💡 数据同步将联动修正客户画像、销售大盘及预测漏斗模型。确认后自动更新「成交阻力」「需求分析」「BANT」等模块，并同步至右侧生命周期时间轴。</div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;" onclick="confirmParse()">✓ 确认更新客户档案</button><button class="btn btn-secondary" onclick="saveOnlyParse()">📥 仅保存</button><button class="btn btn-secondary" onclick="discardParse()">❌ 不保存</button></div>
+  </div>
+</div>
+
+<!-- ==================== 意向评分依据面板（右滑） ==================== -->
+<div id="intent-panel" class="intent-panel">
+  <div class="intent-head">🎯 AI 客户意向综合评分 <span class="intent-close" onclick="closeIntentPanel()">✕</span></div>
+  <div class="intent-total">总分 <b id="intent-total">--</b> <span id="intent-level" class="intent-level"></span></div>
+  <div id="intent-dims"></div>
+  <div class="intent-sub">D2 业务痛难点获取 <span style="color:#999;font-weight:400;">（评价信息获取质量 · 来源标注）</span></div>
+  <div class="d2-bar-row"><span class="d2-bar-fill" style="width:76%"></span></div>
+  <div id="intent-d2-evidence"></div>
+  <div class="intent-sub">D5 销售主观判断 <span style="color:#999;font-weight:400;">（透明展示，防黑箱）</span></div>
+  <div id="intent-d5" class="intent-d5-box"></div>
+  <div class="intent-note">ⓘ 评分为派生展示指标，基于已确权数据联动重算，不回写字段、不需确认。D2 口径：销售追问获知的痛点与客户主动陈述的同样计入——看的是信息具体度。</div>
+</div>
+
+<!-- ==================== 成单弹窗 ==================== -->
+<div id="deal-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeDeal()">
+  <div class="modal"><div class="modal-header"><div class="modal-title">🎉 检测到成单记录！</div><div class="close-btn" onclick="closeDeal()">✕</div></div><div style="font-size:13px;line-height:1.8;">检测到 <strong>北京中科智云</strong> 已有成单记录。<br>成交金额：<strong>¥80,000</strong><br>成交时间：2026-08-20<br><br>是否自动 <strong style="color:#2b6cb0;">总结成交案例</strong>？<br><span style="font-size:11px;color:#999;">（生成后将写入「知识库·成交案例」与「我的战报」中，供后续团队复用与个人复盘）</span></div><div style="display:flex;gap:8px;margin-top:16px;"><button class="btn btn-primary" style="flex:1;" onclick="generateDeal()">确认总结</button><button class="btn btn-secondary" onclick="closeDeal()">暂不总结</button></div></div>
+</div>
+
+<!-- ==================== 知识库<40% 主管升级弹窗（Task3·③） ==================== -->
+<div id="kb-low-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeLowCoverage()">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header"><div class="modal-title">⚠️ 知识库覆盖不足 · 主管升级</div><div class="close-btn" onclick="closeLowCoverage()">✕</div></div>
+    <div style="font-size:13px;line-height:1.85;">
+      内部知识库对该问题覆盖不足（<b style="color:#c05621;">匹配度 31%</b>）。为避免误导客户或过度承诺，AI <b>不据此给出方案</b>。<br><br>
+      👉 建议：把下面整理好的信息<b>复制发给你的直属主管</b>，请其确认解决方案，并安排将该结论补录进知识库，下次同类问题即可直接命中。
+      <div class="kb-low-quote" id="kb-low-quote"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-primary" style="flex:1;min-width:160px;" onclick="copyToSupervisor()">📋 复制信息，发给主管</button>
+      <button class="btn btn-secondary" onclick="toast('📚 已记录：稍后补录进知识库')">📚 稍后补录进知识库</button>
+      <button class="btn btn-secondary" onclick="closeLowCoverage()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 沟通预演弹窗 ==================== -->
+<div id="drill-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeDrill()">
+  <div class="modal drill-modal">
+    <div class="modal-header"><div class="modal-title">🎭 沟通预演 · 实战演练</div><div class="close-btn" onclick="closeDrill()">✕</div></div>
+    <div id="drill-body"></div>
+  </div>
+</div>
+
+<!-- ==================== AI 对话浮窗（居中模态） ==================== -->
+<div id="ai-float-overlay" class="chat-float-overlay hidden" onclick="closeAIChat()"></div>
+<div id="ai-float" class="chat-float hidden">
+  <div class="chat-header"><span>🤖 AI 销售助理 · 智能问答</span><span style="cursor:pointer;font-size:18px;line-height:1;" onclick="closeAIChat()">✕</span></div>
+  <div class="chat-body" id="ai-body"><div class="chat-msg ai"><strong>🤖 AI 销售助理</strong><br>我是你的销售小助理，随时解答：话术、行业洞察、客户推进建议。试试下面的问题 👇</div></div>
+  <div class="chat-input">
+    <div id="ai-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      <span class="parse-tag parse-tag-low" style="cursor:pointer;" onclick="aiAsk('帮我写一段针对预算敏感客户的跟进话术')">预算敏感话术</span>
+      <span class="parse-tag parse-tag-low" style="cursor:pointer;" onclick="aiAsk('制造业 CRM 选型通常关注什么？')">制造业选型</span>
+      <span class="parse-tag parse-tag-low" style="cursor:pointer;" onclick="aiAsk('成都远见精密这个客户，我应该怎么推进？')">推进建议</span>
+    </div>
+    <div class="chat-input-box" id="ai-input" contenteditable>向 AI 提问...</div>
+    <div class="chat-actions"><div class="chat-action-left"></div><button class="btn btn-primary" onclick="aiSend()">发送</button></div>
+  </div>
+</div>
+
+<!-- ==================== 知识库 ==================== -->
+<div id="view-kb" class="hidden">
+  <div class="kb-page">
+    <div class="kb-sidebar"><div style="font-weight:600;margin-bottom:16px;">📚 知识库</div><div class="kb-tree-item active">成单打法案例</div><div class="kb-tree-children"><div class="kb-tree-item" onclick="toast('切换到：制造行业')">制造行业</div><div class="kb-tree-item" onclick="toast('切换到：互联网行业')">互联网行业</div><div class="kb-tree-item" onclick="toast('切换到：贸易行业')">贸易行业</div></div><div class="kb-tree-item" onclick="toast('打开：TopSales 经验')">TopSales 经验</div><div class="kb-tree-item" onclick="toast('打开：行业基础知识')">行业基础知识</div><div class="kb-tree-item" onclick="toast('打开：产品资料')">产品资料</div></div>
+    <div class="kb-content">
+      <h2>📖 成单打法案例</h2>
+      <div class="kb-case-box">
+        <div class="kb-case-title">🎯 案例一：某大型制造企业 CRM 系统成单</div>
+        <div class="kb-case-grid">
+          <div class="kb-case-item"><div class="kb-case-label">行业描述</div><div class="kb-case-value">汽车零部件制造，年销售额 50 亿+，2000 人</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">痛点场景</div><div class="kb-case-value">销售效率低、数据分散撞单、流失率高</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">决策链路</div><div class="kb-case-value">CEO→CTO→销售总监→市场部经理</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">客户态度</div><div class="kb-case-value">谨慎但开放，对价格敏感</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">关注竞品</div><div class="kb-case-value">A 厂商 120万/年 · B 厂商 250万/年</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">核心需求</div><div class="kb-case-value">效率提升 30%、数据统一、满意度提升</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">主要阻力</div><div class="kb-case-value">价格高、安全顾虑、实施周期</div></div>
+          <div class="kb-case-item"><div class="kb-case-label">客户归属</div><div class="kb-case-value">销售一部 · 陈销售</div></div>
+        </div>
+        <div class="kb-case-section"><div class="kb-case-section-title">📋 销售方案（8 个月）</div><p><strong>第1-2月：</strong>深入研究客户业务，了解竞品，准备定制化方案</p><p><strong>第3-4月：</strong>与CEO沟通ROI=150%，CTO技术评审，销售总监试用，培养推动者</p><p><strong>第5-6月：</strong>ROI分析+案例+参观+试用</p><p><strong>第7-8月：</strong>报价190万/年，首期60%，2年合同，赠20万培训</p></div>
+        <div class="kb-case-section"><div class="kb-case-section-title">📊 跟进 / 主要解决问题</div><p>8 个月，20+ 次面对面，50+ 次电话。关键：CTO 安全顾虑（等保三级）、CEO 价格顾虑（ROI+分期）、销售总监易用性（3 月试用）。</p></div>
+        <div class="kb-case-section"><div class="kb-case-section-title">🏆 结果</div><p><strong>成交：</strong>190万/年，2 年合同，总 370.5 万<br><strong>周期：</strong>8 个月<br><strong>产品：</strong>CRM 企业版+实施+培训<br><strong>效果：</strong>效率+30%、满意度+25%、流失-20%</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="demo-tabs">
+  <button class="demo-tab active" onclick="showView('workbench')">工作台</button>
+  <button class="demo-tab" onclick="showView('customer')">客户档案</button>
+  <button class="demo-tab" onclick="showView('kb')">知识库</button>
+  <button class="demo-tab" onclick="openFollowUp()">跟进录入</button>
+  <button class="demo-tab" onclick="openParse()">解析弹窗</button>
+  <button class="demo-tab" onclick="openDeal()">成单弹窗</button>
+  <button class="demo-tab" onclick="openComprehensiveDrill()">沟通预演</button>
+</div>
+
+<script>
+/* ====================== 数据层 ====================== */
+const state = {
+  timelineTab: 'all',
+  _fid: 2,
+  customer: {
+    followups: [
+      { id:'f0', who:'张总（CTO）', initial:'张', color:'#38a169', date:'08-22 14:30', channel:'📞 电话 · 38分钟', text:'关于今年的整体预算，我们内部做了调整。目前能够批复的金额大约在 50-65 万之间，比原计划缩减了 20%。另外，数据迁移问题我们技术团队还在评估。', ai:'预算 50-65万 · 缩减 20% · 数据迁移待评估' },
+      { id:'f1', who:'李华（技术总监）', initial:'李', color:'#9f7aea', date:'08-20 15:15', channel:'💬 微信', text:'我们目前比较担心的是数据实时同步的延迟问题。现有的 ERP 系统接口比较老旧，如果无法保证秒级反馈，可能会影响生产线的决策。', ai:'技术阻力 · ERP 兼容 · 秒级延迟要求' },
+      { id:'f2', who:'王总监', initial:'王', color:'#3182ce', date:'08-18 10:20', channel:'📅 会议 · 60分钟', text:'我们团队对 CRM 的使用门槛比较敏感，希望能和现有系统集成。另外，希望能先看到一份同行业的实施案例。', ai:'使用门槛敏感 · 系统集成需求 · 案例请求' }
+    ],
+    timeline: [
+      { stage:'线索获取', icon:'🔍', date:'9月28日', events:[
+        { type:'system', title:'客户创建', desc:'首次业务对接，对齐价值主张，确认核心痛点' }
+      ]},
+      { stage:'方案沟通', icon:'💡', date:'10月18日', events:[
+        { type:'followup', ref:'f2' },
+        { type:'followup', ref:'f1' }
+      ]},
+      { stage:'商务谈判', icon:'🤝', date:'10月22日', events:[
+        { type:'followup', ref:'f0' },
+        { type:'system', title:'CRM 检测到预算审批通过', desc:'¥30万 第一期' }
+      ]},
+      { stage:'成单交付', icon:'🏆', date:'10月27日', events:[
+        { type:'system', title:'检测到成单记录', desc:'成交金额 ¥80,000 → 自动生成战报' }
+      ]}
+    ],
+    painPoints: [
+      { id:'p1', text:'数据安全焦虑（ERP 兼容 / 迁移丢失）', source:'问出', who:'李华', date:'08-20' },
+      { id:'p2', text:'预算审批两难（CFO 单笔上限 30 万）', source:'主动陈述', who:'张总', date:'08-22' },
+      { id:'p3', text:'竞品 B 观望（压价 8%）', source:'问出', who:'张总', date:'08-18' }
+    ],
+    lastD5: null
+  }
+};
+
+/* ====================== 视图切换 ====================== */
+function showView(n){
+  document.getElementById('view-workbench').classList.toggle('hidden', n!=='workbench');
+  document.getElementById('view-customer').classList.toggle('hidden', n!=='customer');
+  document.getElementById('view-kb').classList.toggle('hidden', n!=='kb');
+  document.querySelectorAll('.demo-tab').forEach((t,i)=>t.classList.toggle('active',(n==='workbench'&&i===0)||(n==='customer'&&i===1)||(n==='kb'&&i===2)));
+}
+function showWorkbench(){ showView('workbench'); }
+function showCustomerPage(){ showView('customer'); }
+function showKB(){ showView('kb'); }
+
+/* ====================== 意向评分面板（Task1·④D2 口径） ====================== */
+function openIntentPanel(){ renderIntentPanel(); document.getElementById('intent-panel').classList.add('show'); }
+function closeIntentPanel(){ document.getElementById('intent-panel').classList.remove('show'); }
+function d5val(){ const d=(state.customer.lastD5||{}).degree; return ({ '很低':0,'低':25,'中':50,'高':75,'很高':95 }[d] ?? 60); }
+function levelLabel(t){ return t>=80?'🔥 高意向':t>=60?'🌡 中意向':t>=30?'❄ 低意向':'⚪ 未激活'; }
+function dimRow(d){ return '<div class="dim-row"><div class="dim-name">'+d.k+'<span class="dim-w">'+d.w+'%</span></div><div class="dim-bar"><span style="width:'+d.v+'%"></span></div><div class="dim-v">'+d.v+'</div></div>'; }
+function renderIntentPanel(){
+  const c = state.customer;
+  const dims = [
+    { k:'D1 有无预算', w:25, v:80 },
+    { k:'D2 业务痛难点获取', w:25, v:76 },
+    { k:'D3 痛点×产品匹配度', w:20, v:70 },
+    { k:'D4 关键决策人支持度', w:20, v:85 },
+    { k:'D5 销售主观判断', w:10, v: d5val() }
+  ];
+  let total=0, h='';
+  dims.forEach(d=>{ total += d.v*d.w/100; h += dimRow(d); });
+  const t = Math.round(total);
+  document.getElementById('intent-total').innerText = t;
+  const lv = document.getElementById('intent-level'); lv.innerText = levelLabel(t);
+  lv.style.color = t>=80?'#e53e3e':t>=60?'#dd6b20':t>=30?'#3182ce':'#a0aec0';
+  document.getElementById('intent-dims').innerHTML = h;
+  let d2 = '';
+  (c.painPoints||[]).forEach(p=>{
+    const tag = p.source==='问出' ? '<span class="src-tag src-ask">销售追问获知</span>' : '<span class="src-tag src-active">客户主动陈述</span>';
+    d2 += '<div class="d2-item">· '+p.text+' '+tag+'（'+(p.who||'')+' · '+(p.date||'')+'）</div>';
+  });
+  document.getElementById('intent-d2-evidence').innerHTML = d2;
+  const d5 = c.lastD5;
+  document.getElementById('intent-d5').innerHTML = d5
+    ? ('最近：<b>'+(d5.degree||'—')+'</b>（'+(d5.date||'')+'）<br>✍️ '+(d5.note||'（无备注）'))
+    : '（暂无主观判断记录）';
+}
+
+/* ====================== 右栏收起 ====================== */
+function toggleRight(){
+  var r=document.getElementById('right-col');
+  r.classList.toggle('collapsed');
+  var l=document.querySelector('.col-left'), c=document.querySelector('.col-center');
+  if(r.classList.contains('collapsed')){ l.style.width='50%'; c.style.width='50%'; }
+  else { l.style.width='33.33%'; c.style.width='33.33%'; }
+}
+
+/* ====================== 时间轴渲染（数据驱动） ====================== */
+function renderTimeline(){
+  const wrap = document.getElementById('timeline-stages');
+  const tab = state.timelineTab;
+  let html = '';
+  state.customer.timeline.forEach(st => {
+    const evs = st.events.filter(e => tab==='all' || e.type==='followup');
+    if(tab==='followup' && evs.length===0) return; // 跟进记录Tab下隐藏无跟进的阶段
+    html += '<div class="tl-stage">';
+    html += '<div class="tl-stage-icon">'+st.icon+'</div>';
+    html += '<div class="tl-stage-head"><span class="tl-name">'+st.stage+'</span><span class="tl-stage-date">'+st.date+'</span></div>';
+    evs.forEach(e => {
+      if(e.type==='system'){
+        html += '<div class="tl-event system"><div class="tl-event-title">'+e.title+'</div><div class="tl-event-desc">'+e.desc+'</div></div>';
+      } else {
+        const f = state.customer.followups.find(x=>x.id===e.ref);
+        html += '<div class="tl-event followup"><div class="tl-event-meta"><strong>'+f.who+'</strong> · '+f.date+' · '+f.channel+'</div><div class="tl-event-desc">'+f.text+'</div><span class="tl-event-ai">🤖 AI 提取：'+f.ai+'</span></div>';
+      }
+    });
+    html += '</div>';
+  });
+  if(html==='') html = '<div class="tl-empty">该阶段暂无跟进记录</div>';
+  wrap.innerHTML = html;
+}
+function setTimelineTab(tab, el){
+  state.timelineTab = tab;
+  document.querySelectorAll('.tl-tab').forEach(t=>t.classList.toggle('active', t===el));
+  renderTimeline();
+}
+
+/* ====================== 跟进记录渲染（数据驱动） ====================== */
+function renderFollowups(){
+  const wrap = document.getElementById('followup-list');
+  document.getElementById('fu-count').textContent = state.customer.followups.length + ' 条';
+  let html = '';
+  state.customer.followups.forEach(f => {
+    html += '<div class="fu-record"><div class="fu-avatar" style="background:'+f.color+';">'+f.initial+'</div>'
+      + '<div class="fu-content"><div class="fu-meta"><span><strong>'+f.who+'</strong> '+f.date+'</span><span>'+f.channel+'</span></div>'
+      + '<div class="fu-text">'+f.text+'</div><span class="fu-ai-tag">🤖 AI 提取：'+f.ai+'</span></div></div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ====================== 跟进录入闭环（侧边面板） ====================== */
+function openFollowUp(){ showView('customer'); document.getElementById('followup-float').classList.add('show'); }
+function closeFollowUp(){ document.getElementById('followup-float').classList.remove('show'); }
+function openParse(){ resetIntuition(); document.getElementById('parse-modal').classList.remove('hidden'); closeFollowUp(); }
+function closeParse(){ document.getElementById('parse-modal').classList.add('hidden'); }
+function selectDegree(el){ document.querySelectorAll('.degree-opt').forEach(x=>x.classList.remove('on')); el.classList.add('on'); document.getElementById('note-wrap').classList.remove('hidden'); }
+function resetIntuition(){ document.querySelectorAll('.degree-opt').forEach(x=>x.classList.remove('on')); const nw=document.getElementById('note-wrap'); if(nw){ nw.classList.add('hidden'); const ta=document.getElementById('intuition-note'); if(ta) ta.value=''; const nc=document.getElementById('note-count'); if(nc) nc.innerText='0'; } }
+function discardParse(){ if(confirm('确认不保存？本次解析结果与直觉判断将一并丢弃。')){ resetIntuition(); closeParse(); } }
+function toggleSelectAll(cb){ document.querySelectorAll('.parse-checkbox').forEach(c=>c.checked=cb.checked); updateParseCount(); }
+function updateParseCount(){
+  const total = document.querySelectorAll('.parse-checkbox').length;
+  const sel = document.querySelectorAll('.parse-checkbox:checked').length;
+  const el = document.getElementById('parse-count'); if(el) el.textContent = '已选 ' + sel + ' / ' + total + ' 项';
+}
+function confirmParse(){
+  const box = document.getElementById('followup-input');
+  const text = (box.innerText || box.textContent || '').trim();
+  if(!text || box.getAttribute('data-empty')==='true'){ toast('⚠️ 请先输入跟进内容'); return; }
+  const now = new Date();
+  const pad = n => (n<10?'0':'')+n;
+  const stamp = pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+  const ai = mockExtract(text);
+  const fid = 'f' + (++state._fid);
+  const deg = (document.querySelector('.degree-opt.on')||{}).dataset?.d || null;
+  const note = deg ? (document.getElementById('intuition-note').value.trim()) : '';
+  const ev = { id:fid, who:'陈销售（你）', initial:'陈', color:'#2b6cb0', date:stamp, channel:'📝 手动录入', text: text, ai: ai, degree: deg, note: note };
+  state.customer.lastD5 = { degree: deg, note: note, date: stamp };   // D5 主观判断（含备注）留档
+  state.customer.followups.unshift(ev);                 // 写入跟进记录列表（顶部）
+  const neg = state.customer.timeline.find(s=>s.stage==='商务谈判');
+  neg.events.unshift({ type:'followup', ref:fid });        // 同步至时间轴"商务谈判"阶段（穿插）
+  renderFollowups();
+  renderTimeline();
+  closeParse();
+  resetIntuition();
+  toast('✅ 已写入客户档案：新增 1 条跟进，并同步至生命周期时间轴' + (deg ? '；D5 直觉判断已记录' : ''));
+  box.innerText = '';
+}
+function saveOnlyParse(){
+  const box = document.getElementById('followup-input');
+  const text = (box.innerText || box.textContent || '').trim();
+  if(!text || box.getAttribute('data-empty')==='true'){ toast('⚠️ 请先输入跟进内容'); return; }
+  const now = new Date(); const pad = n => (n<10?'0':'')+n;
+  const stamp = pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+  const ai = mockExtract(text); const fid = 'f' + (++state._fid);
+  const deg = (document.querySelector('.degree-opt.on')||{}).dataset?.d || null;
+  const note = deg ? (document.getElementById('intuition-note').value.trim()) : '';
+  const ev = { id:fid, who:'陈销售（你）', initial:'陈', color:'#2b6cb0', date:stamp, channel:'📝 手动录入', text: text, ai: ai, degree: deg, note: note };
+  state.customer.lastD5 = { degree: deg, note: note, date: stamp };
+  state.customer.followups.unshift(ev);
+  const neg = state.customer.timeline.find(s=>s.stage==='商务谈判');
+  neg.events.unshift({ type:'followup', ref:fid });
+  renderFollowups(); renderTimeline();
+  closeParse(); resetIntuition();
+  toast('📥 已仅保存跟进（结构化字段未动），策略区点亮待分析素材 ●，D5 备注已留档');
+  box.innerText = '';
+}
+
+/* ====================== 知识库<40% 主管升级（Task3·③复制转发） ====================== */
+function showLowCoverage(){ document.getElementById('kb-low-quote').innerText = buildSupervisorText(); document.getElementById('kb-low-modal').classList.remove('hidden'); }
+function closeLowCoverage(){ document.getElementById('kb-low-modal').classList.add('hidden'); }
+function refreshStrategy(){
+  // 黄金法则：AI 只能刷新"建议列表"，不可直接修改档案/对外动作
+  const newScore = 88 + Math.floor(Math.random()*8); // 88-95% 演示波动
+  toast('🔄 AI 已重新生成 4 条策略 · 综合信心度 → '+newScore+'% · 写入客户档案仍需你确认');
+}
+function toggleChannel(el){ el.classList.toggle('active'); }
+function buildSupervisorText(){
+  const c = state.customer;
+  return '【AI 策略求助】\n'
+    + '客户：' + (c.name || '北京中科智云信息技术有限公司') + '（' + (c.stage || '方案沟通中') + '）\n'
+    + '待解问题：数据迁移安全风险如何兜底？\n'
+    + '客户原话证据：「你们接口要是把我们 ERP 搞挂了谁负责」（08-22 电话）\n'
+    + '外部线索参考：\n · Gartner 2026 制造业 CRM 选型报告 → https://www.gartner.com/doc/manufacturing-crm-2026\n'
+    + '内部知识库现状：匹配度 31%，暂无成熟 SOP。\n'
+    + '请求：请帮忙确认应对口径；确认后我会把结论补录进知识库。\n'
+    + '—— 来自 AI 销售助理 · ' + new Date().toLocaleString('zh-CN');
+}
+function copyToSupervisor(){
+  const txt = buildSupervisorText();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast('✅ 已复制，去你的沟通渠道粘贴发送即可'), ()=>fallbackCopy(txt));
+  } else { fallbackCopy(txt); }
+}
+function fallbackCopy(txt){
+  const ta = document.createElement('textarea'); ta.value = txt; ta.style.position='fixed'; ta.style.top='-9999px';
+  document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, txt.length);
+  try { document.execCommand('copy'); toast('✅ 已复制，去你的沟通渠道粘贴发送即可'); }
+  catch(e){ window.prompt('请手动复制以下信息发给主管：', txt); }
+  document.body.removeChild(ta);
+}
+function mockExtract(t){
+  if(t.indexOf('预算')>=0) return '预算相关 · 金额待确认';
+  if(t.indexOf('竞品')>=0) return '竞品动向 · 需评估影响';
+  if(t.indexOf('技术')>=0 || t.indexOf('迁移')>=0) return '技术顾虑 · 需跟进';
+  return '关键沟通要点 · 已归档';
+}
+
+/* AI 提取项 - 编辑 / 删除 */
+function editParseItem(el){
+  const wrap = el.closest('.parse-result');
+  const titleEl = wrap.querySelector('div[style*="font-weight:600"]');
+  const detailEl = wrap.querySelector('.parse-detail');
+  const oldTitle = titleEl.innerText.trim();
+  const newTitle = prompt('编辑条目标题：', oldTitle);
+  if(newTitle===null) return;
+  titleEl.innerText = newTitle || oldTitle;
+  toast('✏️ 已编辑（演示：实际将持久化保存）');
+}
+function deleteParseItem(el){
+  const wrap = el.closest('.parse-result');
+  const titleEl = wrap.querySelector('div[style*="font-weight:600"]');
+  if(!confirm('确认删除「' + titleEl.innerText.trim() + '」吗？')) return;
+  wrap.style.transition = 'all 0.2s';
+  wrap.style.opacity = '0';
+  wrap.style.transform = 'translateX(20px)';
+  setTimeout(()=>{ wrap.remove(); updateParseCount(); toast('🗑 已删除该条目'); }, 200);
+}
+
+/* 新增待办（演示） */
+function openTodoModal(){
+  const text = prompt('新增待办事项：\n（如「下周三发送案例给张总」）');
+  if(!text) return;
+  toast('✅ 已新增待办：' + text);
+}
+
+/* 初始化占位符（contenteditable） */
+document.addEventListener('DOMContentLoaded', function(){
+  const fp = document.getElementById('followup-input');
+  if(fp){
+    fp.setAttribute('data-empty', 'true');
+    fp.addEventListener('focus', function(){
+      if(this.getAttribute('data-empty')==='true'){ this.innerText=''; this.setAttribute('data-empty','false'); }
+    });
+    fp.addEventListener('blur', function(){
+      if(this.innerText.trim()===''){ this.innerText='例如：张总表示预算调整到 50-65 万，担心迁移风险...'; this.setAttribute('data-empty','true'); }
+    });
+  }
+  updateParseCount();
+});
+
+/* ====================== 成单战报 ====================== */
+function openDeal(){ document.getElementById('deal-modal').classList.remove('hidden'); }
+function closeDeal(){ document.getElementById('deal-modal').classList.add('hidden'); }
+function generateDeal(){
+  const list = document.getElementById('war-report-list');
+  const card = document.createElement('div');
+  card.className = 'war-card';
+  card.innerHTML = '<span class="war-emoji">🏆</span> <span class="war-title">你 成交 ¥80k！</span><div class="war-sub">客户：北京中科智云 · 今日自动生成</div>';
+  list.insertBefore(card, list.firstChild);
+  // 刷新右栏 KPI
+  const deal = parseInt(document.getElementById('mot-deal').textContent,10);
+  document.getElementById('mot-deal').textContent = deal+1;
+  document.getElementById('mot-deal-bar').style.width = Math.min(100,(deal+1)/5*100)+'%';
+  closeDeal();
+  toast('🎉 战报已生成，并同步至「我的战报」与部门战报轮播，右栏数据已刷新');
+}
+
+/* ====================== 战报 Tab ====================== */
+function switchWarTab(el, which){
+  document.querySelectorAll('#right-col .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('war-dept').classList.toggle('hidden', which!=='dept');
+  document.getElementById('war-mine').classList.toggle('hidden', which!=='mine');
+}
+
+/* ====================== 沟通预演（drill） ====================== */
+/* 抽题题库：按痛点分层（V2.2·⑦） */
+const QUESTION_BANK = {
+  p1: [ {level:'表层', q:'你们说私有化，但我担心你们驻场实施会把我们 ERP 弄出毛病来。'},
+        {level:'追问', q:'回滚方案我听过很多家都这么讲，真出事的时候你们多久能恢复？赔吗？'},
+        {level:'压力', q:'隔壁 B 家说他们兜底赔付直接写合同里，你怎么接？'} ],
+  p2: [ {level:'表层', q:'80 万我签不了，这数字我根本过不了财务那关。'},
+        {level:'追问', q:'那你告诉我，凭什么 Q4 见效？我要怎么跟 CFO 讲？'} ],
+  p3: [ {level:'压力', q:'实话说我也在看别家，他们便宜 15%，你们给我个理由。'} ]
+};
+const PAIN_LABEL = { p1:'数据安全焦虑', p2:'预算审批两难', p3:'竞品观望' };
+let drillState = null;
+function levelRank(l){ return l==='压力'?3 : l==='追问'?2 : 1; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function drawQuestions(painKeys){
+  const pool = painKeys.map(k=>(QUESTION_BANK[k]||[]).map(it=>({...it, pain:k})));
+  const drawn = [];
+  painKeys.forEach((k,i)=>{ const arr = pool[i].slice().sort((a,b)=>levelRank(b.level)-levelRank(a.level)); if(arr.length) drawn.push(arr[0]); });
+  const total = painKeys.length + 2;
+  const rest = []; pool.forEach((arr,i)=>arr.forEach(it=>{ if(!drawn.includes(it)) rest.push(it); }));
+  shuffle(rest);
+  while(drawn.length < total && rest.length) drawn.push(rest.shift());
+  shuffle(drawn);
+  return drawn;
+}
+function coverageOk(drawn, painKeys){ return painKeys.every(k=>drawn.some(d=>d.pain===k)); }
+function getDrill(k){ if(k && typeof k === 'string' && k.indexOf('strat_')===0){ const idx=parseInt(k.split('_')[1]); return STRAT_DRILLS[idx]; } return DRILLS[k]; }
+/* ====================== 统一综合预演（Task4·①） ====================== */
+function openComprehensiveDrill(){
+  const keys = (state.customer.painPoints||[]).map(p=>p.id);
+  document.getElementById('drill-modal').classList.remove('hidden');
+  renderDrillPrepare(keys);
+}
+function closeDrill(){ document.getElementById('drill-modal').classList.add('hidden'); }
+function renderDrillPrepare(keys){
+  const n = keys.length;
+  const persona = 'CTO 张总 · 技术严谨 + 成本敏感（最强阻力角色）';
+  document.getElementById('drill-body').innerHTML =
+    '<div style="font-size:13px;color:#4a5568;line-height:1.85;">🎯 <b>沟通预演 · 综合实战检验</b><br>'+
+    'AI 将扮演客户，围绕识别出的 <b>'+n+' 个痛点</b>随机发问，每个痛点至少被考察 1 次。题目顺序每场不同，考察你对整套策略体系的临场调度。<br>'+
+    '本轮约 <b>'+(n+2)+' 轮</b> · 约 8 分钟 · 结束出完整评估报告（四维 + 痛点×轮次矩阵）。</div>'+
+    '<div style="margin:12px 0;padding:10px 12px;background:#f7fafc;border-radius:8px;font-size:12px;color:#4a5568;">👤 AI 建议人设：'+persona+'</div>'+
+    '<label style="font-size:12px;color:#4a5568;display:flex;gap:6px;align-items:center;cursor:pointer;"><input type="checkbox" id="cheat-check"> 允许查阅策略小抄（<span style="color:#c05621;">使用会如实计入报告</span>）</label>'+
+    '<div style="margin-top:16px;display:flex;gap:8px;"><button class="btn btn-orange" style="flex:1;" onclick="startComprehensiveDrill('+JSON.stringify(keys)+')">▶ 开始综合预演</button><button class="btn btn-secondary" onclick="closeDrill()">取消</button></div>';
+}
+function startComprehensiveDrill(keys){
+  let questions = drawQuestions(keys);
+  if(!coverageOk(questions, keys)){ questions = drawQuestions(keys); } // 覆盖约束兜底
+  drillState = { keys: keys, questions: questions, round:0, log:[], cheatUsed:0, allowedCheat: (document.getElementById('cheat-check') && document.getElementById('cheat-check').checked) };
+  const html =
+    '<div style="font-size:13px;color:#4a5568;margin-bottom:8px;">🎭 综合预演进行中 · 第 <b id="drill-round">1</b>/'+questions.length+' 轮 ｜ 覆盖 '+keys.length+' 个痛点</div>'+
+    '<div class="drill-chat" id="drill-chat"></div>'+
+    (drillState.allowedCheat ? '<div style="margin:8px 0;"><button class="btn btn-secondary" style="font-size:11px;" onclick="toggleCheat()">📖 查看策略小抄</button><div id="cheat-panel" class="hidden" style="font-size:11px;background:#fffaf0;border:1px solid #fbd38d;border-radius:8px;padding:10px;margin-top:6px;"></div></div>' : '')+
+    '<div id="drill-input-wrap"><div style="font-size:12px;color:#4a5568;font-weight:600;">✍️ 你的回应（自由输入，调动对应策略）</div>'+
+    '<textarea class="drill-input-box" id="drill-text" placeholder="用你自己的话回应客户…例如：先讲季度拆分、再讲 2 年长协价保"></textarea>'+
+    '<div class="drill-input-bar"><span class="drill-hint">💡 AI 据关键词与策略匹配打分（不因预设选项受限）</span><button class="btn btn-primary" onclick="sendComprehensive()">发送回应</button></div></div>'+
+    '<div style="margin-top:14px;display:flex;gap:8px;"><button class="btn btn-secondary" onclick="endComprehensive()">结束演练，看报告</button></div>';
+  document.getElementById('drill-body').innerHTML = html;
+  addDrillMsg('ai', questions[0].q);
+}
+function scoreRound(text, pain){
+  const kw = { p1:['分步','沙盒','回滚','迁移','兼容','SLA','验证','白皮','保障'], p2:['拆','季度','分期','订阅','30万','审批','CFO','ROI','回本','长协'], p3:['价值','组合','服务','风险','方案','折扣','附加'] };
+  let hit=0; (kw[pain]||[]).forEach(k=>{ if(text.indexOf(k)>=0) hit++; });
+  return hit>=2 ? 'good' : hit===1 ? 'mid' : 'bad';
+}
+function sendComprehensive(){
+  if(!drillState) return;
+  const ta = document.getElementById('drill-text');
+  const val = ta.value.trim();
+  if(!val){ toast('⚠️ 请输入你的回应'); return; }
+  const q = drillState.questions[drillState.round];
+  addDrillMsg('me', val);
+  drillState.log.push({ round: drillState.round, pain: q.pain, level: q.level, reply: val, quality: scoreRound(val, q.pain) });
+  drillState.round++;
+  ta.value='';
+  if(drillState.round < drillState.questions.length){
+    document.getElementById('drill-round').innerText = drillState.round+1;
+    addDrillMsg('ai', drillState.questions[drillState.round].q);
+  } else {
+    addDrillMsg('ai', '（客户沉默片刻）…今天先聊到这，你回去准备一下？');
+    document.getElementById('drill-round').innerText = drillState.round;
+  }
+}
+function toggleCheat(){
+  if(!drillState) return;
+  drillState.cheatUsed++;
+  const p = document.getElementById('cheat-panel');
+  p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden')){
+    p.innerHTML = '<b>策略小抄（仅供参照）</b><br>① 拆季度订阅 ≤25万，绕开 30万审批<br>② 数据迁移：分步+沙盒+回滚+SLA&lt;2s<br>③ ROI 效率+30%=年省150万，配案例<br>④ Q4 限时折扣作收官筹码';
+  }
+}
+function endComprehensive(){
+  if(!drillState) return;
+  const ds = drillState; const n = ds.questions.length;
+  const qs = ds.log.map(r=>r.quality==='good'?100:r.quality==='mid'?70:40);
+  const avg = qs.length ? Math.round(qs.reduce((a,b)=>a+b,0)/qs.length) : 60;
+  const answered = ds.log.length;
+  const dims = [
+    { name:'① 倾听与识别', v: Math.max(60, Math.round(answered/n*100)) },
+    { name:'② 策略匹配度', v: avg },
+    { name:'③ 表达与专业度', v: Math.max(50, avg-5) },
+    { name:'④ 推进与促单', v: Math.round(qs.slice(Math.floor(n/2)).reduce((a,b)=>a+b,0)/Math.max(1,Math.ceil(n/2))) || avg }
+  ];
+  const total = Math.round(dims.reduce((a,b)=>a+b.v,0)/4);
+  const pains = ds.keys;
+  let matrix = '<div class="drill-matrix"><div class="dm-row dm-head"><div class="dm-cell">痛点 \\ 轮次</div>';
+  for(let i=0;i<n;i++) matrix += '<div class="dm-cell">R'+(i+1)+'</div>';
+  matrix += '</div>';
+  pains.forEach(pk=>{
+    matrix += '<div class="dm-row"><div class="dm-cell dm-pain">'+PAIN_LABEL[pk]+'</div>';
+    for(let i=0;i<n;i++){
+      const rec = ds.log[i];
+      if(rec && rec.pain===pk){ const cls = rec.quality==='good'?'m-good':rec.quality==='mid'?'m-mid':'m-bad'; const sym = rec.quality==='good'?'✓':rec.quality==='mid'?'△':'✕'; matrix += '<div class="dm-cell '+cls+'">'+sym+'</div>'; }
+      else matrix += '<div class="dm-cell m-none">·</div>';
+    }
+    matrix += '</div>';
+  });
+  matrix += '</div>';
+  const covered = pains.filter(pk=>ds.log.some(r=>r.pain===pk)).length;
+  const weak = [...new Set(ds.log.filter(r=>r.quality!=='good').map(r=>PAIN_LABEL[r.pain]))];
+  let html = '<div class="score-box"><div style="font-size:13px;color:#666;">综合预演评估报告</div><div class="score-total">'+total+'</div><div style="font-size:12px;color:#999;">'+n+' 轮 · 覆盖 '+covered+'/'+pains.length+' 痛点</div>';
+  html += '<div class="score-dims">';
+  dims.forEach(d=>{ html += '<div class="score-dim"><div class="dim-name">'+d.name+'</div><div class="dim-ok">'+d.v+' 分</div></div>'; });
+  html += '</div>';
+  html += '<div style="font-size:12px;font-weight:600;margin:10px 0 4px;color:#2b6cb0;">痛点 × 轮次覆盖矩阵</div>'+matrix;
+  html += '<div style="font-size:12px;margin-top:8px;">📋 小抄使用：<b>'+(ds.allowedCheat?ds.cheatUsed:'未启用')+'</b> 次'+(ds.cheatUsed>0?'（已如实计入）':'')+'</div>';
+  html += '<div class="score-advice"><strong>💡 优化建议：</strong>';
+  html += weak.length ? ('重点补齐 <b>'+weak.join('、')+'</b> 对应的策略卡，复习话术后再来一场。') : '三个痛点均扣准策略要点，表现优秀，继续保持！';
+  html += ' 开场先共情再抛方案；用「分阶段+回滚」把大风险拆小；面向 CEO 务必带 ROI 数字。</div>';
+  html += '<div style="margin-top:16px;display:flex;gap:8px;"><button class="btn btn-primary" onclick="closeDrill()">完成</button><button class="btn btn-secondary" onclick="openComprehensiveDrill()">再来一场</button></div></div>';
+  document.getElementById('drill-body').innerHTML = html;
+}
+function addDrillMsg(role, text){
+  const c = document.getElementById('drill-chat');
+  const m = document.createElement('div');
+  m.className = 'chat-msg '+(role==='me'?'me':'ai');
+  m.innerText = text;
+  c.appendChild(m);
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ====================== AI 对话浮窗 ====================== */
+function openAIChat(){ document.getElementById('ai-float').classList.remove('hidden'); document.getElementById('ai-float-overlay').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeAIChat(){ document.getElementById('ai-float').classList.add('hidden'); document.getElementById('ai-float-overlay').classList.add('hidden'); document.body.style.overflow = ''; }
+function aiAsk(q){ document.getElementById('ai-input').innerText = q; aiSend(); }
+function aiSend(){
+  const box = document.getElementById('ai-input');
+  const q = (box.innerText||'').trim();
+  if(!q || q==='向 AI 提问...'){ toast('⚠️ 请输入问题'); return; }
+  const body = document.getElementById('ai-body');
+  const me = document.createElement('div'); me.className='chat-msg me'; me.innerText=q; body.appendChild(me);
+  const ans = aiAnswer(q);
+  const ai = document.createElement('div'); ai.className='chat-msg ai'; ai.innerText='🤖 '+ans; body.appendChild(ai);
+  body.scrollTop = body.scrollHeight;
+  box.innerText='向 AI 提问...';
+}
+function aiAnswer(q){
+  if(q.indexOf('预算')>=0) return '针对预算敏感客户，建议三步走：① 拆分报价（季度订阅 ≤25 万，低于审批上限）；② 上同行案例佐证 ROI；③ 留灵活增减空间。已为你预备 3 套话术。';
+  if(q.indexOf('制造')>=0) return '制造业选型通常关注：实施周期不能中断业务、数据安全合规（等保）、与现有 ERP 集成、以及可量化的 ROI。决策链多为 CEO→CTO→使用部门。';
+  if(q.indexOf('成都')>=0) return '成都远见精密处于预算审批阶段、3 天后截止。建议：立即微信确认进度，准备拆分报价，并在截止前 48 小时再跟进一次，是最佳窗口。';
+  return '我已记录你的问题。作为销售小助理，我可以帮你生成话术、分析痛点、推荐知识库打法。试试上面的快捷问题 👆';
+}
+function openChatPrefill(t){ openFollowUp(); document.getElementById('followup-input').innerText = t; toast('💬 已为你预填话术要点，可补充后「解析痛点」'); }
+
+/* ====================== 客户池搜索 ====================== */
+function filterCustomers(kw){
+  kw = kw.trim();
+  document.querySelectorAll('#customer-pool .customer-card').forEach(c=>{
+    c.style.display = (!kw || c.innerText.indexOf(kw)>=0) ? '' : 'none';
+  });
+}
+
+/* ====================== Toast ====================== */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ====================== v10：客户基础信息编辑 ====================== */
+let basicEditing = false;
+function toggleEditBasicInfo(){
+  const row = document.getElementById('basic-info-row');
+  const btn = document.getElementById('basic-edit-toggle');
+  basicEditing = !basicEditing;
+  row.querySelectorAll('.info-pair').forEach(p=>{
+    const lbl = p.querySelector('.lbl').textContent.replace('：','').trim();
+    const val = p.querySelector('.val');
+    if(basicEditing){
+      const cur = (val.textContent || '').trim();
+      val.innerHTML = '<input class="basic-edit-input" data-field="'+lbl+'" value="'+cur+'"/>';
+    } else {
+      const inp = val.querySelector('input');
+      const newVal = inp ? inp.value.trim() : val.textContent.trim();
+      if(lbl==='客户阶段'){
+        val.innerHTML = '<span class="stage-tag">💡 '+(newVal||'方案沟通中')+'</span>';
+      } else {
+        val.textContent = newVal;
+      }
+    }
+  });
+  btn.textContent = basicEditing ? '✓ 保存' : '✏️ 编辑';
+  btn.style.background = basicEditing ? '#f0fff4' : '';
+  btn.style.borderColor = basicEditing ? '#38a169' : '';
+  btn.style.color = basicEditing ? '#276749' : '';
+  if(!basicEditing) toast('✓ 客户基础信息已更新（demo 未持久化）');
+}
+
+/* ====================== v10：3 栏（需求/动力/阻力）行内编辑 ====================== */
+const NM_ICON = {
+  needs: [['done','✓'],['done','✓'],['pending','○'],['pending','○']],
+  power: [['bolt','⚡']],
+  resist: [['high','高'],['mid','中'],['mid','中'],['low','低']]
+};
+const NM_TYPE = { needs:'需求', power:'动力', resist:'阻力' };
+
+function toggleNmCol(col, btn){
+  const list = document.getElementById('nm-'+col);
+  if(!list) return;
+  const editing = btn.classList.toggle('editing');
+  btn.textContent = editing ? '✓ 完成' : '✏️ 编辑';
+  const items = list.querySelectorAll('.nm3-item .nm3-text');
+  items.forEach(t=>{
+    t.contentEditable = editing ? 'true' : 'false';
+    t.style.outline = editing ? '1px dashed #4299e1' : 'none';
+    t.style.padding = editing ? '2px 4px' : '0';
+    t.style.borderRadius = editing ? '4px' : '0';
+    t.style.background = editing ? '#fff' : 'transparent';
+  });
+  if(!editing) toast('✓ 「'+NM_TYPE[col]+'」已保存');
+}
+function addNm3Item(col){
+  const list = document.getElementById('nm-'+col);
+  const div = document.createElement('div');
+  div.className = 'nm3-item';
+  // 默认图标（需求用 ✓ 推进用 ⚡ 阻力用 中）
+  const icons = { needs:['done','✓ 新'], power:['bolt','⚡ 新'], resist:['mid','中 新'] };
+  const ic = icons[col];
+  div.innerHTML = '<span class="nm-icon '+ic[0]+'">'+ic[1]+'</span><div class="nm3-text" contenteditable="true" style="outline:1px dashed #4299e1;padding:2px 4px;border-radius:4px;background:#fff;">点击此处编辑新'+NM_TYPE[col]+'</div>';
+  list.insertBefore(div, list.firstChild);
+  // 自动进入编辑模式：把 3 栏按钮触发
+  const btn = list.parentElement.querySelector('.col-edit');
+  if(btn && !btn.classList.contains('editing')) toggleNmCol(col, btn);
+  setTimeout(()=>{ const t = div.querySelector('.nm3-text'); t.focus(); document.execCommand('selectAll',false,null); }, 60);
+}
+
+/* ====================== v10：AI 思考过程 展开/收起 ====================== */
+function toggleCot(){
+  document.getElementById('ai-cot').classList.toggle('open');
+}
+
+/* ====================== V2.2·4.2.5 按策略生成参考话术 ====================== */
+/* 话术不可脱离策略独立存在：每张策略卡「💬 生成参考话术」按「该策略上下文 + 对应痛点原话」生成，
+   规格：一句话 ≤40 字、切中痛点本质、贴近销售口吻、禁术语堆砌；生成后就地展开，附 复制 / 我来改 / 换一种说法。
+   销售的改写版与其母策略一并沉淀进 state.tacticCorpus（天然语料库）。 */
+const TACTIC_LIB = [
+  { painId:'p2', pain:'预算审批两难（CFO 单笔 30 万上限）', scripts:[
+    '为帮贵司绕开 30 万审批红线，我先解锁第一期 25 万，效果达标再升二期',
+    '总价我拆成季度付，每笔都不超您 30 万上限，签字更顺',
+    '咱们先走 25 万试点，跑通再谈全年，风险我先扛'
+  ]},
+  { painId:'p1', pain:'数据安全焦虑（ERP 兼容 / 迁移丢失）', scripts:[
+    '我们做过 200+ ERP 接口兼容测试，先沙盒验证，您签字背书再切',
+    '迁移我分三步走，每步带回滚，出问题秒退，您随时叫停',
+    '给您 30 天验收期，同步延迟超 2 秒我退款，白纸黑字写进 SLA'
+  ]},
+  { painId:null, pain:'ROI 经济论证空（CEO 要具体数字）', scripts:[
+    '我带 ROI 模型拜访您 30 分钟，5 个指标算完您再定',
+    '效率提升 30% 等于年省 150 万，模型参数您当场可调',
+    '金山云、浪潮都这么跑过，我把测算底稿带来给您看'
+  ]},
+  { painId:'p3', pain:'竞品 B 观望压价（8% off）', scripts:[
+    'Q4 我司签约专属折扣，但本月底前锁定才作数',
+    '折扣绑定 2 年合同，您省心我锁价，双赢不互坑',
+    '竞品八折是促销，我是长协锁价，您续约不吃亏'
+  ]}
+];
+let tacticCursor = [0,0,0,0];
+let tacticEdits = {};
+
+function generateTacticScript(idx){
+  const card = document.querySelectorAll('.strat-card')[idx];
+  if(!card){ return; }
+  let out = card.querySelector('.tactic-out');
+  if(!out){ out = document.createElement('div'); out.className = 'tactic-out'; card.querySelector('.strat-actions').after(out); }
+  renderTactic(idx, out);
+}
+function renderTactic(idx, out){
+  const lib = TACTIC_LIB[idx];
+  const pp = lib.painId ? (state.customer.painPoints.find(p=>p.id===lib.painId)) : null;
+  const painQuote = pp ? pp.text : lib.pain;
+  const painSrc = pp ? ('（'+pp.source+' · '+pp.who+'）') : '';
+  const text = (tacticEdits[idx]!==undefined) ? tacticEdits[idx] : lib.scripts[tacticCursor[idx]];
+  out.innerHTML =
+    '<div class="to-pain">🎯 对应痛点：'+escHtml(lib.pain)+'</div>'+
+    '<div class="to-quote">「'+escHtml(painQuote)+'」'+escHtml(painSrc)+'</div>'+
+    '<div class="to-script" id="to-script-'+idx+'">'+escHtml(text)+'</div>'+
+    '<div class="to-actions">'+
+      '<button class="to-btn" onclick="copyTactic('+idx+')">📋 复制</button>'+
+      '<button class="to-btn" onclick="editTactic('+idx+')">✏️ 我来改</button>'+
+      '<button class="to-btn" onclick="changeTactic('+idx+')">↻ 换一种说法</button>'+
+    '</div>';
+}
+function copyTactic(idx){
+  const lib = TACTIC_LIB[idx];
+  const text = (tacticEdits[idx]!==undefined) ? tacticEdits[idx] : lib.scripts[tacticCursor[idx]];
+  copyText(text);
+}
+function editTactic(idx){
+  const card = document.querySelectorAll('.strat-card')[idx];
+  const out = card.querySelector('.tactic-out');
+  const cur = out.querySelector('.to-script').textContent;
+  out.querySelector('.to-script').outerHTML =
+    '<textarea class="to-edit" id="to-edit-'+idx+'">'+escHtml(cur)+'</textarea>'+
+    '<div class="to-actions"><button class="to-btn primary" onclick="saveTactic('+idx+')">💾 保存</button>'+
+    '<button class="to-btn" onclick="cancelTactic('+idx+')">✕ 取消</button></div>';
+  const ta = document.getElementById('to-edit-'+idx); ta.focus(); ta.setSelectionRange(0, ta.value.length);
+}
+function saveTactic(idx){
+  const ta = document.getElementById('to-edit-'+idx);
+  const val = (ta.value||'').trim();
+  if(!val){ toast('⚠️ 话术不能为空'); return; }
+  tacticEdits[idx] = val;
+  if(!state.tacticCorpus) state.tacticCorpus = [];
+  state.tacticCorpus.push({ strategy:idx+1, pain:TACTIC_LIB[idx].pain, script:val, by:'sales', date:todayStr() });
+  generateTacticScript(idx);
+  toast('✅ 已保存改写版，并沉淀进语料库');
+}
+function cancelTactic(idx){ generateTacticScript(idx); }
+function changeTactic(idx){
+  const lib = TACTIC_LIB[idx];
+  tacticEdits[idx] = undefined;
+  tacticCursor[idx] = (tacticCursor[idx]+1) % lib.scripts.length;
+  const out = document.querySelectorAll('.strat-card')[idx].querySelector('.tactic-out');
+  renderTactic(idx, out);
+}
+function escHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function copyText(txt){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast('📋 已复制参考话术'), ()=>fallbackCopy(txt));
+  } else { fallbackCopy(txt); }
+}
+function todayStr(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+
+/* ====================== v10：动力加速（智能跟进） ====================== */
+function openDynamicPower(){
+  // 黄金法则：AI 不直接对外发起任何动作，所有准备都需销售显式复制/订阅/审核后执行
+  toast('⚡ 已为北京中科智云准备「动力加速」：① 张总+李总邀约文案（点复制发送） ② 《季度拆分方案》草案（点预览待你审核） ③ 审批进度跟单提醒（点订阅通知）');
+  // 让 KPI 也跳一下（演示视觉反馈）
+  const f = document.getElementById('kpi-pct');
+  if(f){ f.textContent='66%'; const b=document.getElementById('kpi-bar'); if(b) b.style.width='66%'; }
+}
+
+/* ====================== 初始化 ====================== */
+renderFollowups();
+renderTimeline();
+</script>
+</body>
+</html>

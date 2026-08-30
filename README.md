@@ -101,14 +101,14 @@ AI 销售助理是一个面向 B2B 销售人员的**单页工作台 + 客户档�
 
 ```bash
 # 方式一：直接运行（推荐）
-双击打开 prototype-v17.html   # 零依赖、离线可跑
+双击打开 prototype-v10.html   # 零依赖、离线可跑
 
 # 方式二：本地克隆
 git clone <your-repo-url>
-# 浏览器打开 prototype-v17.html
+# 浏览器打开 prototype-v10.html
 ```
 
-> 当前可运行原型为 `prototype-v17.html`（单文件，最新版本）。
+> 当前可运行原型为 `prototype-v10.html`（单文件，最新版本）。
 
 ---
 
@@ -127,7 +127,8 @@ git clone <your-repo-url>
 
 ```
 AI销售助理/
-├── prototype-v17.html                      # 可运行原型（单文件，零依赖）★ 当前最新
+├── index.html                              # GitHub Pages 入口（prototype-v10.html 的副本）
+├── prototype-v10.html                      # 可运行原型（单文件，零依赖）★ 当前最新
 ├── docs/
 │   ├── AI销售助理工作台-功能设计文档.md          # 完整功能设计文档（V2.2）
 │   ├── AI销售助理-交互设计文档-V3.md
